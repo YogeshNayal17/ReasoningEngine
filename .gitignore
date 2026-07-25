@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.iml
+
+# Claude Code local state
+.claude/
+
+# Each sub-project (app/, backend/) keeps its own .gitignore for
+# toolchain-specific artifacts (build/, .dart_tool/, __pycache__, venv, ...).

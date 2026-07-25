@@ -1,0 +1,5 @@
+{
+  "ENV_NAME": "prod",
+  "API_BASE_URL": "https://api.reasonai.app",
+  "ENABLE_VERBOSE_LOGGING": "false"
+}

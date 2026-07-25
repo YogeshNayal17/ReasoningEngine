@@ -1,0 +1,33 @@
+name: reason_ai
+description: "Reason AI - helps users think critically about the information they consume."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management + DI. Providers double as our dependency injection
+  # mechanism (see README.md "Dependency injection" section) — no separate
+  # service locator (get_it/injectable) is used, to avoid running two
+  # competing DI systems side by side.
+  flutter_riverpod: ^3.3.2
+
+  # Declarative routing with deep-link support, needed once the overlay
+  # feature (Milestone 2) needs to launch into the app from outside its
+  # normal lifecycle.
+  go_router: ^17.3.0
+
+  # Logging backend behind the AppLogger interface (lib/core/logging).
+  logger: ^2.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
