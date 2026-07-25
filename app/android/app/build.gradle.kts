@@ -19,7 +19,10 @@ android {
         applicationId = "com.reasonai.reason_ai"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Pinned above Flutter's default: WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        // (the modern, non-deprecated overlay window type) requires API 26+. Targeting 26+
+        // avoids maintaining a legacy TYPE_PHONE code path for the ~0% of active devices below it.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

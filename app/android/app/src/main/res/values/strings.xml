@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="overlay_bubble_description">Reason AI floating bubble</string>
+    <string name="overlay_expanded_label">Reason AI</string>
+    <string name="overlay_close_description">Close Reason AI bubble</string>
+</resources>

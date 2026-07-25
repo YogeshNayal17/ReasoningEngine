@@ -30,7 +30,9 @@ rather than all at once:
 
 1. **Flutter project scaffold** — structure, theming, routing, DI, logging.
    ✅ done, see [`app/`](app/).
-2. Android overlay (floating bubble) feature.
+2. **Android overlay (floating bubble) feature.** ✅ done — draggable,
+   expand/collapse, survives backgrounding, see the Milestone 2 section in
+   [`app/README.md`](app/README.md).
 3. Screenshot capture.
 4. Region selector UI.
 5. OCR integration.
