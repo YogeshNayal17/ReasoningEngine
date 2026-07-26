@@ -19,10 +19,11 @@ android {
         applicationId = "com.reasonai.reason_ai"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // Pinned above Flutter's default: WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        // (the modern, non-deprecated overlay window type) requires API 26+. Targeting 26+
-        // avoids maintaining a legacy TYPE_PHONE code path for the ~0% of active devices below it.
-        minSdk = 26
+        // Pinned above Flutter's default: AccessibilityService.takeScreenshot()
+        // (used for on-demand screen capture with no MediaProjection consent
+        // dialog or recording indicator) requires API 30+. This comfortably
+        // covers TYPE_APPLICATION_OVERLAY too, which only needed API 26+.
+        minSdk = 30
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

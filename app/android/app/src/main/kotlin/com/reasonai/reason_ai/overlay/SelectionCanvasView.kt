@@ -34,6 +34,7 @@ class SelectionCanvasView(context: Context, private val bitmap: Bitmap) : View(c
         style = Paint.Style.STROKE
         strokeWidth = 4f
     }
+    private val handlePaint = Paint().apply { color = Color.WHITE }
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
     private val destRect = RectF()
@@ -69,6 +70,9 @@ class SelectionCanvasView(context: Context, private val bitmap: Bitmap) : View(c
         canvas.drawRect(0f, sel.top, sel.left, sel.bottom, dimPaint)
         canvas.drawRect(sel.right, sel.top, width.toFloat(), sel.bottom, dimPaint)
         canvas.drawRect(sel, borderPaint)
+        for (corner in listOf(sel.left to sel.top, sel.right to sel.top, sel.left to sel.bottom, sel.right to sel.bottom)) {
+            canvas.drawCircle(corner.first, corner.second, HANDLE_RADIUS_PX, handlePaint)
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -113,5 +117,6 @@ class SelectionCanvasView(context: Context, private val bitmap: Bitmap) : View(c
 
     companion object {
         private const val MIN_SELECTION_PX = 8f
+        private const val HANDLE_RADIUS_PX = 10f
     }
 }

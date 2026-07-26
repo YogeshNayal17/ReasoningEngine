@@ -46,14 +46,16 @@ lib/
 └── shared/widgets/             Reusable UI atoms (PrimaryButton, ...)
 
 android/app/src/main/kotlin/com/reasonai/reason_ai/
-├── MainActivity.kt             Registers platform channels + the one
-│                                startActivityForResult flow (MediaProjection
-│                                consent) that has to live on an Activity
+├── MainActivity.kt             Registers platform channels; checks/opens the
+│                                accessibility-service permission (no in-app
+│                                consent dialog is possible for that kind of
+│                                permission, unlike the MediaProjection flow
+│                                this replaced)
 ├── overlay/                    OverlayService, OverlayBubbleController,
-│                                SelectionCanvasView, SelectionOverlayController,
-│                                OverlayMethodChannelHandler
-└── capture/                    ScreenCaptureService, PendingCaptureStore,
-                                 CaptureMethodChannelHandler
+│                                BubbleMenuOverlayController, SelectionCanvasView,
+│                                SelectionOverlayController, OverlayMethodChannelHandler
+└── capture/                    CaptureAccessibilityService, PendingCaptureStore,
+                                 PendingClipboardRequestStore, CaptureMethodChannelHandler
 ```
 
 ### Dependency injection: Riverpod, not a service locator
@@ -120,7 +122,8 @@ a system Settings screen outside the app, the panel re-checks state via
 polling would work too, but resume is the only moment the state can
 actually have changed.
 
-**`minSdk` raised to 26.** `WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY`
+**`minSdk` raised to 26** (later 30 — see the AccessibilityService rework
+near the end of this doc). `WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY`
 (the modern, non-deprecated overlay window type) requires API 26+; below
 that you need the deprecated `TYPE_PHONE`. Targeting 26+ only avoids
 maintaining that legacy branch for a vanishingly small slice of active
@@ -142,7 +145,7 @@ below for how that trigger actually landed (it changed the tap gesture
 itself, not just the expanded panel, per product direction after this
 milestone shipped).
 
-### Milestone 3: MediaProjection, and the bubble's gesture model changed
+### Milestone 3: MediaProjection, and the bubble's gesture model changed (capture mechanism superseded — see below)
 
 **The tap gesture changed from Milestone 2.** The original brief's core
 interaction is "tap bubble → screen is captured" (one tap), but Milestone 2
@@ -165,7 +168,8 @@ recording, just repeated on-demand single frames from one grant. The
 trade-off: Android shows its own persistent "screen recording" indicator
 for as long as that grant is held, on top of this app's own foreground
 notification — an OS-level privacy signal that can't be suppressed, and
-arguably shouldn't be.
+arguably shouldn't be. (This whole `MediaProjection` mechanism was later
+replaced — see the AccessibilityService rework near the end of this doc.)
 
 **Why the consent flow uses `startActivityForResult`, not the modern API.**
 `FlutterActivity` extends the plain `android.app.Activity`, not AndroidX's
@@ -233,6 +237,9 @@ after Milestone 3 shipped:
   a capability any third-party Play Store app can obtain. `MediaProjection`
   stayed as-is; only the post-capture flow changed (straight into crop,
   no separate preview stop) to make the interaction feel more immediate.
+  (This rejection was later reversed by an explicit product decision,
+  accepting the Play Store risk — see the AccessibilityService rework near
+  the end of this doc.)
 - **`google_mlkit_text_recognition`** (MIT, `flutter-ml.dev`) over hand-
   rolling OCR: recognition is a pre-trained ML model, not something
   reasonable to build from scratch the way the overlay/capture native code
@@ -296,6 +303,101 @@ one short delay for that to actually composite, captures, then restores
 it — before this, there was no reason to have noticed, since capture and
 "look at the result" were separated by an app-switch that drew attention
 elsewhere.
+
+### Post-Milestone-5 rework #2: MediaProjection replaced with AccessibilityService, and a bubble-tap menu
+
+Product feedback after the selection-overlay rework above raised two more
+points, both driven by a second mockup:
+
+1. The `MediaProjection` consent dialog and persistent "screen recording"
+   indicator (accepted as an unavoidable trade-off in the Milestone 5
+   section above) were explicitly rejected — the ask was one permission,
+   granted once at install-ish time, with capture feeling completely
+   silent afterward.
+2. Tapping the bubble should show a small menu — "Select on screen" or
+   "From clipboard / text" — rather than jumping straight into capture.
+
+**Capture mechanism swapped to `AccessibilityService.takeScreenshot()`
+(API 30+).** This is the one Android capability that can grab arbitrary
+on-screen content with no per-capture consent dialog and no recording
+indicator — but it comes with the real trade-off flagged (and rejected) in
+Milestone 5: Google Play's Accessibility API policy restricts this API to
+apps with a genuine accessibility use case, and using it purely for
+OCR/reasoning is a documented way to get an app rejected or pulled. This
+was a business-risk decision, not a technical one — the user explicitly
+chose to accept that risk after the trade-off was laid out, reversing the
+Milestone 5 call.
+
+- `ScreenCaptureService` (the `MediaProjection`-holding foreground service)
+  is deleted entirely, along with `MainActivity`'s `onActivityResult`/
+  `startActivityForResult` consent flow and the
+  `FOREGROUND_SERVICE_MEDIA_PROJECTION` permission.
+- `CaptureAccessibilityService` replaces it: a minimal `AccessibilityService`
+  (`canRetrieveWindowContent="false"`, only listens for
+  `typeWindowStateChanged` since it doesn't act on events at all) whose only
+  job is calling `takeScreenshot()`. Declared in
+  `res/xml/accessibility_service_config.xml` with `canTakeScreenshot="true"`.
+- **Enabling it has no in-app dialog.** Unlike `MediaProjection`,
+  Accessibility Services can only be toggled from system Settings >
+  Accessibility — there's no `Intent` that pops a grant/deny dialog.
+  `hasPermission()` checks `Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES`
+  directly (the service could be revoked from Settings at any time, so this
+  is checked fresh rather than cached); `requestPermission()` just opens
+  `Settings.ACTION_ACCESSIBILITY_SETTINGS` and lets the existing
+  resume-refresh pattern (from Milestone 2's overlay permission) pick up
+  the change when the user comes back.
+- **`minSdk` raised 26 → 30**, since `takeScreenshot()` requires API 30.
+  This drops Android 8–10 support; a deliberate trade against zero-startup
+  distribution risk, made alongside the AccessibilityService decision above.
+- `takeScreenshot()` returns a `HardwareBuffer`-backed `Bitmap`
+  (`Config.HARDWARE`), which several APIs used further down the pipeline
+  reject outright — `Bitmap.compress()` throws on it, and so do some
+  `Bitmap.createBitmap` overloads. `CaptureAccessibilityService` copies to
+  `Config.ARGB_8888` immediately after wrapping the buffer, so the rest of
+  the pipeline (`SelectionCanvasView`, the crop in
+  `SelectionOverlayController`) never has to know a hardware bitmap was
+  ever involved. One PNG round-trip also disappeared in this swap: capture
+  now hands a `Bitmap` straight to the selection overlay instead of
+  encoding to PNG and immediately decoding it back, which `ScreenCaptureService`
+  used to do only because `MediaProjection`'s `ImageReader` output needed
+  converting anyway.
+
+**Bubble-tap menu, matching the mockup.** `OverlayBubbleController`'s short
+tap now calls `onMenuRequested` (previously `onCaptureRequested`), which
+`OverlayService` handles by showing `BubbleMenuOverlayController` — a small
+`WRAP_CONTENT` overlay window (`bubble_menu.xml`) with the "What would you
+like me to assess?" title, "Select on screen" / "From clipboard / text"
+options, and a close button. It's positioned near the bubble's current
+on-screen coordinates (`OverlayBubbleController.currentScreenPosition()`),
+clamped so it can't render off-screen, flipping to appear below the bubble
+instead of above if there isn't room above it.
+
+Deliberately **no outside-tap-to-dismiss** — that would need a full-screen
+transparent touch-catcher behind a small popup purely to detect taps
+outside it, which is exactly the kind of complexity this doesn't need when
+a close button already covers dismissal (`CLAUDE.md`: simplicity over
+cleverness). "Select on screen" leads into the existing capture →
+selection-overlay flow unchanged; "From clipboard / text" is new (below).
+
+**The clipboard/text path.** There's nothing to visually select for pasted
+text, so this path skips the selection overlay and brings the app forward
+immediately, via a new `PendingClipboardRequestStore` (a boolean flag,
+mirroring `PendingCaptureStore`). The actual clipboard read has to happen
+in Dart, in the now-foregrounded app, not in the native `Service` that
+requested it — Android 10+ only lets the currently-focused app read
+clipboard contents, and a background `Service` is never that. `Clipboard`
+comes from `package:flutter/services.dart` — no new dependency, since
+Flutter ships clipboard access as a built-in platform channel.
+`CaptureController` gained a `pastedText` field alongside `capturedImage`;
+`OcrResultScreen` shows whichever one is present, running OCR only for the
+image path and skipping straight to displaying the text for the clipboard
+path — no second screen needed for what's visually the same "show me some
+text" result.
+
+**Selection UI polish.** `SelectionCanvasView` now draws small white
+handle circles at the four corners of the selection rectangle, matching
+the mockup's visual treatment more closely than the border-only rectangle
+from the original rework.
 
 ### Linting
 

@@ -46,7 +46,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     ref.listen<CaptureState>(captureControllerProvider, (previous, next) {
-      if (next.capturedImage != null && next.capturedImage != previous?.capturedImage) {
+      final hasNewCapture = next.capturedImage != null && next.capturedImage != previous?.capturedImage;
+      final hasNewPastedText = next.pastedText != null && next.pastedText != previous?.pastedText;
+      if (hasNewCapture || hasNewPastedText) {
         context.push(RoutePaths.ocrResult);
       }
     });

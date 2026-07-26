@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reason_ai/features/capture/data/capture_bridge.dart';
@@ -8,6 +8,7 @@ class FakeCaptureBridge implements CaptureBridge {
   bool hasPermissionValue = false;
   bool requestPermissionResult = true;
   Uint8List? pendingCapture;
+  bool pendingClipboardRequest = false;
 
   @override
   Future<bool> hasPermission() async => hasPermissionValue;
@@ -24,6 +25,13 @@ class FakeCaptureBridge implements CaptureBridge {
     pendingCapture = null;
     return value;
   }
+
+  @override
+  Future<bool> consumePendingClipboardRequest() async {
+    final value = pendingClipboardRequest;
+    pendingClipboardRequest = false;
+    return value;
+  }
 }
 
 void main() {
@@ -31,11 +39,19 @@ void main() {
   late ProviderContainer container;
 
   setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     bridge = FakeCaptureBridge();
     container = ProviderContainer(
       overrides: [captureBridgeProvider.overrideWithValue(bridge)],
     );
     addTearDown(container.dispose);
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    );
   });
 
   test('refresh reflects permission and consumes a pending capture', () async {
@@ -73,5 +89,37 @@ void main() {
     await container.read(captureControllerProvider.notifier).requestPermission();
 
     expect(container.read(captureControllerProvider).hasPermission, isFalse);
+  });
+
+  test('a pending clipboard request reads the clipboard into pastedText', () async {
+    // Settle the notifier's own build-time refresh() first. It races this
+    // test's explicit refresh() below, and unlike the other steps (which
+    // resolve in one microtask), the clipboard step awaits a real platform
+    // channel round trip — long enough for the two calls to fall out of
+    // the lockstep that otherwise makes the race harmless.
+    await container.read(captureControllerProvider.notifier).refresh();
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return <String, dynamic>{'text': 'hello from clipboard'};
+        }
+        return null;
+      },
+    );
+    bridge.pendingClipboardRequest = true;
+
+    await container.read(captureControllerProvider.notifier).refresh();
+
+    expect(container.read(captureControllerProvider).pastedText, equals('hello from clipboard'));
+  });
+
+  test('no pending clipboard request leaves pastedText null', () async {
+    bridge.pendingClipboardRequest = false;
+
+    await container.read(captureControllerProvider.notifier).refresh();
+
+    expect(container.read(captureControllerProvider).pastedText, isNull);
   });
 }

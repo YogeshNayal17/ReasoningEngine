@@ -6,4 +6,11 @@
     <string name="selection_instruction">Drag to select the area</string>
     <string name="selection_cancel">Cancel</string>
     <string name="selection_confirm_description">Confirm selection</string>
+    <string name="accessibility_service_description">Lets Reason AI capture the screen only when you tap its floating bubble, so you can select text to analyze. No screen recording happens otherwise.</string>
+    <string name="bubble_menu_title">What would you like me to assess?</string>
+    <string name="bubble_menu_close_description">Dismiss</string>
+    <string name="bubble_menu_select_screen_title">Select on screen</string>
+    <string name="bubble_menu_select_screen_subtitle">Draw a box to capture any part</string>
+    <string name="bubble_menu_clipboard_title">From clipboard / text</string>
+    <string name="bubble_menu_clipboard_subtitle">Paste text to analyze</string>
 </resources>

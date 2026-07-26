@@ -2,6 +2,7 @@ package com.reasonai.reason_ai.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Point
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
@@ -18,9 +19,9 @@ import kotlin.math.abs
  * to three gestures, disambiguated by finger travel and hold duration
  * rather than a click listener:
  * - drag: moves the bubble ([DRAG_THRESHOLD_PX] of travel).
- * - short tap on the collapsed bubble: requests a capture, which
- *   [OverlayService] follows with a full-screen selection overlay — the
- *   product's core "tap bubble, drag to select" interaction.
+ * - short tap on the collapsed bubble: opens the bubble menu (select on
+ *   screen / from clipboard), which [OverlayService] shows near wherever
+ *   the bubble currently sits.
  * - long press ([LONG_PRESS_MS] held without moving): expands the bubble
  *   into a panel with a close/stop action. A short tap while expanded
  *   collapses it back.
@@ -29,7 +30,7 @@ class OverlayBubbleController(
     context: Context,
     private val windowManager: WindowManager,
     private val onCloseRequested: () -> Unit,
-    private val onCaptureRequested: () -> Unit,
+    private val onMenuRequested: () -> Unit,
 ) {
     private val view: View = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
     private val collapsedIcon: View = view.findViewById(R.id.bubble_collapsed)
@@ -81,6 +82,9 @@ class OverlayBubbleController(
         view.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
+    /** Current on-screen position (top-left, in the same coordinate space as [layoutParams]). */
+    fun currentScreenPosition(): Point = Point(layoutParams.x, layoutParams.y)
+
     @SuppressLint("ClickableViewAccessibility")
     private fun handleTouch(v: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
@@ -116,7 +120,7 @@ class OverlayBubbleController(
                     if (isExpanded) {
                         toggleExpanded()
                     } else {
-                        onCaptureRequested()
+                        onMenuRequested()
                     }
                 }
                 return true

@@ -2,14 +2,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Isolates the screen-capture platform channel behind a plain Dart
-/// interface, mirroring `OverlayBridge`. `requestPermission` returns the
-/// grant result directly (unlike the overlay's fire-and-forget request)
-/// because the native side awaits the system consent dialog before
-/// resolving the platform channel call — no resume-polling needed for it.
+/// interface, mirroring `OverlayBridge`. `requestPermission` is
+/// fire-and-forget on the native side (it just opens system Settings, since
+/// enabling an AccessibilityService has no in-app consent dialog) — the
+/// resume-refresh pattern in `CaptureController` is what actually picks up
+/// the grant once the user comes back.
 abstract class CaptureBridge {
   Future<bool> hasPermission();
   Future<bool> requestPermission();
   Future<Uint8List?> consumePendingCapture();
+  Future<bool> consumePendingClipboardRequest();
 }
 
 class MethodChannelCaptureBridge implements CaptureBridge {
@@ -30,6 +32,11 @@ class MethodChannelCaptureBridge implements CaptureBridge {
   @override
   Future<Uint8List?> consumePendingCapture() {
     return _channel.invokeMethod<Uint8List>('consumePendingCapture');
+  }
+
+  @override
+  Future<bool> consumePendingClipboardRequest() async {
+    return await _channel.invokeMethod<bool>('consumePendingClipboardRequest') ?? false;
   }
 }
 

@@ -31,17 +31,17 @@ class CaptureControlPanel extends ConsumerWidget {
           Text(
             captureState.hasPermission
                 ? 'Screen capture permission granted'
-                : 'Reason AI needs permission to capture your screen',
+                : 'Reason AI needs the accessibility permission to capture your screen',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           if (!captureState.hasPermission)
             PrimaryButton(
-              label: 'Grant screen capture permission',
+              label: 'Enable in Settings',
               onPressed: controller.requestPermission,
             )
           else
-            const Text('Tap the bubble, then drag to select what you want to analyze.'),
+            const Text('Tap the bubble, then choose to select on-screen text or paste text to analyze.'),
         ],
       ),
     );

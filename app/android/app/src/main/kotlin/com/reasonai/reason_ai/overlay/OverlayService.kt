@@ -6,7 +6,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -16,8 +16,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.reasonai.reason_ai.MainActivity
 import com.reasonai.reason_ai.R
+import com.reasonai.reason_ai.capture.CaptureAccessibilityService
 import com.reasonai.reason_ai.capture.PendingCaptureStore
-import com.reasonai.reason_ai.capture.ScreenCaptureService
+import com.reasonai.reason_ai.capture.PendingClipboardRequestStore
 
 /**
  * Foreground service that owns the overlay bubble's window for as long as
@@ -25,11 +26,15 @@ import com.reasonai.reason_ai.capture.ScreenCaptureService
  * is what makes the bubble survive the host app being backgrounded — its
  * lifecycle is independent of [com.reasonai.reason_ai.MainActivity].
  *
- * Also owns the full-screen [SelectionOverlayController] shown right after
- * a capture: the user drags a selection and confirms/cancels entirely as
- * an overlay, without the app ever coming to the foreground. Only a
- * confirmed selection brings [MainActivity] forward — that's where OCR
- * needs to run and, eventually, where the reasoning UI lives.
+ * Tapping the bubble shows [BubbleMenuOverlayController] with two entry
+ * points. "Select on screen" leads into [SelectionOverlayController]: the
+ * screenshot with a draggable selection, confirmed/cancelled entirely as an
+ * overlay without the app ever coming to the foreground. "From
+ * clipboard/text" has nothing to select, so it brings [MainActivity]
+ * forward immediately to read the clipboard there (only the focused app
+ * can reliably do that on Android 10+). Either way, the app itself only
+ * opens once there's something to show — that's where OCR/reasoning UI
+ * lives.
  *
  * [isRunning] is a simple static flag rather than a bound-service query:
  * the only consumer is [OverlayMethodChannelHandler] running in the same
@@ -38,6 +43,7 @@ import com.reasonai.reason_ai.capture.ScreenCaptureService
 class OverlayService : Service() {
 
     private var bubbleController: OverlayBubbleController? = null
+    private var bubbleMenuController: BubbleMenuOverlayController? = null
     private var selectionOverlayController: SelectionOverlayController? = null
     private lateinit var windowManager: WindowManager
 
@@ -49,13 +55,14 @@ class OverlayService : Service() {
             context = this,
             windowManager = windowManager,
             onCloseRequested = ::stopSelf,
-            onCaptureRequested = ::handleCaptureRequested,
+            onMenuRequested = ::showBubbleMenu,
         )
         bubbleController?.attach()
         isRunning = true
     }
 
     override fun onDestroy() {
+        dismissBubbleMenu()
         selectionOverlayController?.detach()
         selectionOverlayController = null
         bubbleController?.detach()
@@ -66,11 +73,35 @@ class OverlayService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun showBubbleMenu() {
+        val bubble = bubbleController ?: return
+        bubbleMenuController = BubbleMenuOverlayController(
+            context = this,
+            windowManager = windowManager,
+            bubblePosition = bubble.currentScreenPosition(),
+            onSelectScreen = {
+                dismissBubbleMenu()
+                handleCaptureRequested()
+            },
+            onClipboardText = {
+                dismissBubbleMenu()
+                handleClipboardRequested()
+            },
+            onDismiss = ::dismissBubbleMenu,
+        )
+        bubbleMenuController?.attach()
+    }
+
+    private fun dismissBubbleMenu() {
+        bubbleMenuController?.detach()
+        bubbleMenuController = null
+    }
+
     private fun handleCaptureRequested() {
-        val captureService = ScreenCaptureService.instance
+        val captureService = CaptureAccessibilityService.instance
         if (captureService == null) {
-            // No screen-capture permission granted yet — surface the app
-            // so the user can grant it, rather than silently doing nothing.
+            // Accessibility permission not granted yet — surface the app so
+            // the user can enable it, rather than silently doing nothing.
             bringAppToForeground()
             return
         }
@@ -79,17 +110,16 @@ class OverlayService : Service() {
         // visibility change a frame to actually composite before capturing.
         bubbleController?.setVisible(false)
         Handler(Looper.getMainLooper()).postDelayed({
-            captureService.captureOnce { bytes ->
+            captureService.takeScreenshotBitmap { bitmap ->
                 bubbleController?.setVisible(true)
-                if (bytes != null) {
-                    showSelectionOverlay(bytes)
+                if (bitmap != null) {
+                    showSelectionOverlay(bitmap)
                 }
             }
         }, HIDE_BUBBLE_DELAY_MS)
     }
 
-    private fun showSelectionOverlay(pngBytes: ByteArray) {
-        val bitmap = BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size) ?: return
+    private fun showSelectionOverlay(bitmap: Bitmap) {
         selectionOverlayController = SelectionOverlayController(
             context = this,
             windowManager = windowManager,
@@ -107,6 +137,11 @@ class OverlayService : Service() {
     private fun dismissSelectionOverlay() {
         selectionOverlayController?.detach()
         selectionOverlayController = null
+    }
+
+    private fun handleClipboardRequested() {
+        PendingClipboardRequestStore.request()
+        bringAppToForeground()
     }
 
     private fun bringAppToForeground() {
