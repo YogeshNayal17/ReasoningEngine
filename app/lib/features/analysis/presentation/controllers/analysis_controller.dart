@@ -36,6 +36,13 @@ class AnalysisController extends Notifier<AnalysisState> {
     final result = await _api.analyze(text);
     state = AnalysisState(result: result);
   }
+
+  /// Loads a previously saved analysis into the same slot a live `/analyze`
+  /// call would fill, so the result screens (which only ever read from
+  /// this provider) can show it without needing a separate read path.
+  void viewSaved(AnalyzeResult analysis) {
+    state = AnalysisState(result: Result.success(analysis));
+  }
 }
 
 final analysisControllerProvider = NotifierProvider<AnalysisController, AnalysisState>(

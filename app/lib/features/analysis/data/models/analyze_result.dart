@@ -1,6 +1,8 @@
 /// Mirrors the backend's `AnalyzeResponse` shape (`backend/app/schemas.py`).
 /// Currently always mocked data — Milestone 7 will make the values real,
-/// not the shape.
+/// not the shape. `toJson`/`fromJson` round-trip through the same shape so
+/// a saved analysis (see `SavedAnalysis`) can be written to disk and read
+/// back identically to what the backend returned.
 enum InsightKind { strength, question, context }
 
 InsightKind _insightKindFromJson(String value) {
@@ -30,6 +32,13 @@ class KeyInsight {
       tag: json['tag'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind.name,
+        'title': title,
+        'detail': detail,
+        'tag': tag,
+      };
 }
 
 class EvidenceItem {
@@ -47,6 +56,8 @@ class EvidenceItem {
       source: json['source'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() => {'stance': stance, 'text': text, 'source': source};
 }
 
 class AnalyzeResult {
@@ -83,4 +94,14 @@ class AnalyzeResult {
       summary: json['summary'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'claim': claim,
+        'what_this_means': whatThisMeans,
+        'insights': insights.map((insight) => insight.toJson()).toList(),
+        'questions': questions,
+        'context': context,
+        'evidence': evidence.map((item) => item.toJson()).toList(),
+        'summary': summary,
+      };
 }

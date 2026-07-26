@@ -5,6 +5,7 @@
 /// results) are added in later milestones.
 abstract final class RoutePaths {
   static const String home = '/';
+  static const String savedAnalyses = '/saved-analyses';
   static const String analyzing = '/analyzing';
   static const String coreClaim = '/core-claim';
   static const String analysis = '/analysis';

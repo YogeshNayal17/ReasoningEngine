@@ -5,6 +5,7 @@ import '../../features/analysis/presentation/screens/analysis_screen.dart';
 import '../../features/analysis/presentation/screens/analyzing_screen.dart';
 import '../../features/analysis/presentation/screens/core_claim_screen.dart';
 import '../../features/analysis/presentation/screens/evidence_screen.dart';
+import '../../features/analysis/presentation/screens/saved_analyses_screen.dart';
 import '../../features/analysis/presentation/screens/summary_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import 'route_paths.dart';
@@ -19,6 +20,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.home,
         name: 'home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.savedAnalyses,
+        name: 'savedAnalyses',
+        builder: (context, state) => const SavedAnalysesScreen(),
       ),
       GoRoute(
         path: RoutePaths.analyzing,

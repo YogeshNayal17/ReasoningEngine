@@ -55,4 +55,21 @@ void main() {
       equals('Could not reach the server.'),
     );
   });
+
+  test('viewSaved sets a success result without calling the api', () async {
+    const analysis = AnalyzeResult(
+      claim: 'saved claim',
+      whatThisMeans: 'what it means',
+      insights: [],
+      questions: [],
+      context: [],
+      evidence: [],
+      summary: 'summary',
+    );
+
+    container.read(analysisControllerProvider.notifier).viewSaved(analysis);
+
+    final state = container.read(analysisControllerProvider);
+    expect(state.result?.when(success: (value) => value.claim, failure: (_) => null), equals('saved claim'));
+  });
 }

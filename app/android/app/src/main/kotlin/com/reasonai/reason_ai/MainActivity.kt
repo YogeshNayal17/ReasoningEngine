@@ -41,11 +41,21 @@ class MainActivity : FlutterActivity() {
     // ActivityResult to await here. We check the enabled-services list
     // directly rather than caching a boolean ourselves, since the user can
     // also revoke it from Settings while the app isn't running.
+    //
+    // Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES stores entries using
+    // ComponentName's *shorthand* form for services in the app's own
+    // package (e.g. "com.reasonai.reason_ai/.capture.CaptureAccessibilityService"),
+    // not the fully-qualified form ComponentName.flattenToString() produces
+    // ("com.reasonai.reason_ai/com.reasonai.reason_ai.capture....") — a
+    // plain string comparison against the latter always fails even when the
+    // service is genuinely enabled. ComponentName.unflattenFromString()
+    // understands both forms and normalizes them, so parse each entry with
+    // it and compare ComponentNames instead of raw strings.
     private fun hasAccessibilityPermission(): Boolean {
-        val expectedComponent = ComponentName(this, CaptureAccessibilityService::class.java).flattenToString()
+        val expected = ComponentName(this, CaptureAccessibilityService::class.java)
         val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
             ?: return false
-        return enabled.split(':').any { it.equals(expectedComponent, ignoreCase = true) }
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
     }
 
     private fun openAccessibilitySettings() {

@@ -55,7 +55,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reason AI')),
+      appBar: AppBar(
+        title: const Text('Reason AI'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Past analyses',
+            onPressed: () => context.push(RoutePaths.savedAnalyses),
+          ),
+        ],
+      ),
       body: const Center(
         child: SingleChildScrollView(
           child: Column(

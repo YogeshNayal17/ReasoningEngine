@@ -463,6 +463,52 @@ the one action that's real today — it returns to Home.
 and an optional `tag` (e.g. "Moderate"). This is still all fixed
 placeholder text — Milestone 7 changes the values, not this shape.
 
+### Saving and viewing past analyses
+
+`SavedAnalysesRepository` persists completed analyses as a single JSON
+file in the app's documents directory via `path_provider` — already a
+dependency, so this feature needed zero new packages. A flat file is
+sufficient for a list that only grows by explicit user action ("Save this
+analysis" on `SummaryScreen`); a real database would solve a problem this
+doesn't have.
+
+`SavedAnalysesScreen` (reachable from a history icon on Home) lists saved
+entries; tapping one calls `AnalysisController.viewSaved()`, which sets
+the *same* provider state a live `/analyze` call would — so
+`CoreClaimScreen`/`AnalysisScreen`/`EvidenceScreen`/`SummaryScreen` can
+display a replayed past result with no changes at all, since they only
+ever read from that one provider regardless of whether the result just
+came from the network or from disk.
+
+**Bug fixed during this feature**: `SavedAnalysesController.refresh()`
+originally wrote `state` as its very first statement, before any `await`.
+Since `build()` triggers the first `refresh()` via `unawaited(...)`, that
+write executed synchronously *inside* `build()`, before `build()` had
+returned its initial value — Riverpod throws "Tried to read the state of
+an uninitialized provider" in that situation. `CaptureController` and the
+other auto-refreshing controllers avoid this because their `refresh()`
+awaits something (the platform channel call) before ever touching `state`;
+`SavedAnalysesController.refresh()` now does the same — no `state` access
+before the first `await`.
+
+### Bug: the accessibility permission icon never actually turned green
+
+`hasAccessibilityPermission()` built its expected component string via
+`ComponentName.flattenToString()` — the fully-qualified form
+(`com.reasonai.reason_ai/com.reasonai.reason_ai.capture.CaptureAccessibilityService`).
+But `Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES` stores services that
+live in the app's own package using ComponentName's *shorthand* form
+instead (`com.reasonai.reason_ai/.capture.CaptureAccessibilityService`,
+confirmed directly via `adb shell settings get secure
+enabled_accessibility_services`) — a plain string comparison against the
+fully-qualified form never matched, even with the service genuinely
+enabled. Capture itself was unaffected the whole time, since that path
+checks `CaptureAccessibilityService.instance` (set when the OS actually
+binds the service) rather than this string check — only the Home screen's
+permission icon was ever wrong. Fixed by parsing each entry with
+`ComponentName.unflattenFromString()`, which understands both forms and
+normalizes them, and comparing `ComponentName`s instead of raw strings.
+
 ### Linting
 
 `analysis_options.yaml` extends `flutter_lints` and turns on

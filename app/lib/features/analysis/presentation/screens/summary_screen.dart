@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
 import '../controllers/analysis_controller.dart';
+import '../controllers/saved_analyses_controller.dart';
 import '../widgets/coming_soon.dart';
 
-/// Final result screen. "Ask a follow-up question" / "Save this analysis" /
-/// "Share" have no backing feature yet — they show a "Coming soon" snackbar
-/// rather than doing nothing silently. "New selection" is the one action
-/// that's real today: it just returns to Home, ready for another capture.
+/// Final result screen. "Ask a follow-up question" / "Share" have no
+/// backing feature yet — they show a "Coming soon" snackbar rather than
+/// doing nothing silently. "Save this analysis" and "New selection" are
+/// both real: save persists via `SavedAnalysesController`, new selection
+/// returns to Home.
 class SummaryScreen extends ConsumerWidget {
   const SummaryScreen({super.key});
 
@@ -53,7 +55,12 @@ class SummaryScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () => showComingSoon(context),
+              onPressed: () async {
+                await ref.read(savedAnalysesControllerProvider.notifier).save(analysis);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved')));
+                }
+              },
               icon: const Icon(Icons.bookmark_border),
               label: const Text('Save this analysis'),
             ),
