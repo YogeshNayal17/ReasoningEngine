@@ -38,14 +38,19 @@ class SavedAnalysesController extends Notifier<SavedAnalysesState> {
   /// Doesn't set `isLoading` before the `await` — `build()` calls this via
   /// `unawaited(refresh())`, and writing `state` before the first `await`
   /// would run synchronously inside `build()`, before it's returned its
-  /// initial value, which crashes with "uninitialized provider".
+  /// initial value, which crashes with "uninitialized provider". The
+  /// `ref.mounted` check guards the opposite end: in a short-lived
+  /// container (e.g. a test disposed right after its assertions), this
+  /// await can still be in flight after disposal — `ref.mounted` is safe
+  /// to check post-dispose, unlike writing `state`.
   Future<void> refresh() async {
     try {
       final items = await _repository.loadAll();
+      if (!ref.mounted) return;
       state = SavedAnalysesState(items: items.reversed.toList());
     } catch (error, stackTrace) {
       _logger.error('Failed to load saved analyses', error: error, stackTrace: stackTrace);
-      state = const SavedAnalysesState();
+      if (ref.mounted) state = const SavedAnalysesState();
     }
   }
 

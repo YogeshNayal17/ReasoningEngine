@@ -67,10 +67,15 @@ class OverlayController extends Notifier<OverlayState> {
     }
   }
 
+  // build() triggers this via unawaited(_refresh()) — in a short-lived
+  // container (e.g. a test disposed right after its assertions), this
+  // await can still be in flight after disposal. ref.mounted is safe to
+  // check post-dispose, unlike writing `state`.
   Future<void> _refresh() async {
     try {
       final hasPermission = await _bridge.hasPermission();
       final isRunning = await _bridge.isRunning();
+      if (!ref.mounted) return;
       state = state.copyWith(hasPermission: hasPermission, isRunning: isRunning);
     } catch (error, stackTrace) {
       _logger.error('Failed to refresh overlay state', error: error, stackTrace: stackTrace);

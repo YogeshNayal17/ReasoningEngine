@@ -64,9 +64,16 @@ class CaptureController extends Notifier<CaptureState> {
     }
   }
 
+  // build() triggers the first refresh() via unawaited(refresh()) — in a
+  // short-lived container (e.g. a test disposed right after its
+  // assertions), these methods' awaits can still be in flight after
+  // disposal. ref.mounted is safe to check post-dispose, unlike writing
+  // `state`, so each method below checks it before its own state write.
+
   Future<void> _refreshPermission() async {
     try {
       final hasPermission = await _bridge.hasPermission();
+      if (!ref.mounted) return;
       state = state.copyWith(hasPermission: hasPermission);
     } catch (error, stackTrace) {
       _logger.error('Failed to refresh capture permission', error: error, stackTrace: stackTrace);
@@ -76,9 +83,8 @@ class CaptureController extends Notifier<CaptureState> {
   Future<void> _checkPendingCapture() async {
     try {
       final bytes = await _bridge.consumePendingCapture();
-      if (bytes != null) {
-        state = state.copyWith(capturedImage: bytes);
-      }
+      if (bytes == null || !ref.mounted) return;
+      state = state.copyWith(capturedImage: bytes);
     } catch (error, stackTrace) {
       _logger.error('Failed to check pending capture', error: error, stackTrace: stackTrace);
     }
@@ -89,6 +95,7 @@ class CaptureController extends Notifier<CaptureState> {
       final requested = await _bridge.consumePendingClipboardRequest();
       if (!requested) return;
       final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!ref.mounted) return;
       state = state.copyWith(pastedText: data?.text ?? '');
     } catch (error, stackTrace) {
       _logger.error('Failed to read clipboard text', error: error, stackTrace: stackTrace);

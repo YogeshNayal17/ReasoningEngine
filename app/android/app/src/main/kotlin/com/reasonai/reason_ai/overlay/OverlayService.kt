@@ -30,11 +30,18 @@ import com.reasonai.reason_ai.capture.PendingClipboardRequestStore
  * points. "Select on screen" leads into [SelectionOverlayController]: the
  * screenshot with a draggable selection, confirmed/cancelled entirely as an
  * overlay without the app ever coming to the foreground. "From
- * clipboard/text" has nothing to select, so it brings [MainActivity]
- * forward immediately to read the clipboard there (only the focused app
- * can reliably do that on Android 10+). Either way, the app itself only
- * opens once there's something to show — that's where OCR/reasoning UI
- * lives.
+ * clipboard/text" has nothing to select, so it opens the app immediately
+ * to read the clipboard there (only the focused app can reliably do that
+ * on Android 10+). Either way, the app itself only opens once there's
+ * something to show — that's where OCR/reasoning UI lives.
+ *
+ * (An Android Bubble-based variant of [bringAppToForeground] — showing the
+ * result as a floating window instead of a full task switch — was tried
+ * and reverted. It technically worked, but only after forcing the
+ * notification system's "bubble preference" to ALL via a developer-only
+ * `adb shell cmd notification set_bubbles` command; the standard Settings
+ * toggle a real user can reach didn't reliably promote our synthetic
+ * "conversation" to actually auto-expand. See git history if revisiting.)
  *
  * [isRunning] is a simple static flag rather than a bound-service query:
  * the only consumer is [OverlayMethodChannelHandler] running in the same

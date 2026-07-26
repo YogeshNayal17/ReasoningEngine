@@ -509,6 +509,37 @@ permission icon was ever wrong. Fixed by parsing each entry with
 `ComponentName.unflattenFromString()`, which understands both forms and
 normalizes them, and comparing `ComponentName`s instead of raw strings.
 
+### Tried and reverted: an Android Bubble for the analysis result
+
+Product direction asked whether the result flow could open as a floating
+overlay (like Messenger chat heads) instead of a full task switch,
+optional and falling back to the normal full-app launch. Android's own
+**Bubbles** feature (`Notification.Builder.setBubbleMetadata()`, API 30+)
+was a good fit in principle — a bubble shows a normal `Activity` in a
+floating window, so it would have reused `MainActivity` and every result
+screen unchanged, no second Flutter engine needed. It was fully
+implemented (`BubbleNotifier`, a fake "conversation" shortcut/person to
+satisfy the API's requirement, `hasBubblePermission`/
+`requestBubblePermission` plumbed through to a `BubbleControlPanel` on
+Home) and reverted after on-device testing.
+
+**Why it was reverted.** `setAutoExpandBubble(true)` — the whole point,
+since the ask was zero-touch — only actually auto-expanded after forcing
+the notification system's per-app bubble preference to "ALL conversations"
+via `adb shell cmd notification set_bubbles <pkg> 1`, confirmed directly
+against `adb shell dumpsys notification` (`isBubble` flipped `false` →
+`true` only after that command). That preference is distinct from the
+basic "Allow bubbles" toggle a real user can reach in Settings, and there
+was no confirmed way for a real end user to reach it without `adb` — a
+developer-only tool. Rather than ship a feature that silently degrades to
+"appears but needs a manual tap" for every real user while working
+perfectly for us in testing, it was pulled entirely. See git history
+(`OverlayService`/`OverlayMethodChannelHandler`/`overlay_bridge.dart`/
+`overlay_controller.dart` around this point) if revisiting — in
+particular, the cancel-before-repost fix for "works once, not the second
+time" (auto-expand is only honored for a bubble that doesn't already
+exist) is still correct and worth keeping if this is attempted again.
+
 ### Linting
 
 `analysis_options.yaml` extends `flutter_lints` and turns on
