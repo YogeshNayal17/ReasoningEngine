@@ -19,9 +19,20 @@ def test_analyze_returns_mocked_reasoning_response():
     assert isinstance(body["evidence"], list) and body["evidence"]
     assert {item["stance"] for item in body["evidence"]} == {"for", "against", "neutral"}
     assert isinstance(body["summary"], str) and body["summary"]
+    assert body["domain"] == "general"
 
 
 def test_analyze_rejects_missing_text_field():
     response = client.post("/analyze", json={})
 
     assert response.status_code == 422
+
+
+def test_analyze_returns_503_when_use_mock_false_and_no_key(monkeypatch):
+    monkeypatch.setenv("USE_MOCK", "False")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    response = client.post("/analyze", json={"text": "test"})
+
+    assert response.status_code == 503
+    assert "OPENAI_API_KEY" in response.json()["detail"]

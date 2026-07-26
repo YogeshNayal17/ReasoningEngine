@@ -1,21 +1,33 @@
-"""Mocked reasoning logic for Milestone 6 — no AI calls, fixed shape.
+"""Reasoning pipeline entry point.
 
-Milestone 7 replaces this function's body with a real pipeline (claim
-extraction, evidence retrieval, reasoning). The /analyze endpoint itself
-won't need to change; only what's inside `analyze()` will.
+Milestone 6 introduced this as a fixed mock. Milestone 7 makes it real —
+Universal Prompt + Domain Detection + Domain Prompt, sent to OpenAI (see
+`openai_client.py`/`domains.py`) — but only when `USE_MOCK` is false.
+`USE_MOCK` defaults to true specifically so this repository works out of
+the box with no OpenAI account, key, or cost until someone deliberately
+sets it up in `.env`.
 """
 
+from .config import Settings, get_settings
+from .openai_client import analyze_with_openai
 from .schemas import AnalyzeResponse, EvidenceItem, KeyInsight
 
 
-def analyze(text: str) -> AnalyzeResponse:
+def analyze(text: str, settings: Settings | None = None) -> AnalyzeResponse:
+    settings = settings or get_settings()
+    if settings.use_mock:
+        return _mock_analyze(text)
+    return analyze_with_openai(text, settings)
+
+
+def _mock_analyze(text: str) -> AnalyzeResponse:
     claim = text.strip() or "(no text provided)"
     return AnalyzeResponse(
         claim=claim,
         what_this_means=(
             "This is a mocked explanation of what the claim predicts — no real "
-            "analysis has run yet. Milestone 7 replaces this with a real "
-            "interpretation of the claim's meaning."
+            "analysis has run yet. Set USE_MOCK=False with a real OPENAI_API_KEY "
+            "in .env to see a real interpretation of the claim's meaning."
         ),
         insights=[
             KeyInsight(
@@ -59,5 +71,6 @@ def analyze(text: str) -> AnalyzeResponse:
                 source="N/A",
             ),
         ],
-        summary="This is a mocked reasoning response for Milestone 6. No AI has analyzed this claim.",
+        summary="This is a mocked reasoning response. USE_MOCK is currently true, so no AI has analyzed this claim.",
+        domain="general",
     )

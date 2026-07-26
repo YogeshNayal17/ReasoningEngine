@@ -32,3 +32,6 @@ class AnalyzeResponse(BaseModel):
     context: list[str]
     evidence: list[EvidenceItem]
     summary: str
+    # Which DOMAIN_PROMPTS entry (app/domains.py) was used — surfaced mainly
+    # for diagnosing the Milestone 7 pipeline; not yet consumed by the app.
+    domain: str = "general"

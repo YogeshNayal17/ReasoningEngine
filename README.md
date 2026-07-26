@@ -47,10 +47,12 @@ rather than all at once:
    same result screen, skipping OCR entirely — see the Milestone 5 section
    in [`app/README.md`](app/README.md).
 6. **Backend (FastAPI).** ✅ done (mocked) — a single `POST /analyze`
-   endpoint returning a fixed mocked reasoning response, no AI calls yet,
-   see [`backend/README.md`](backend/README.md).
-7. AI pipeline: replace the mock with real claim extraction + reasoning
-   (OpenAI-backed prompts).
+   endpoint, see [`backend/README.md`](backend/README.md).
+7. **AI pipeline.** ✅ done — Universal Prompt + Domain Detection + Domain
+   Prompt, OpenAI-backed, behind a `USE_MOCK` flag that defaults to true
+   (no key needed out of the box; set `USE_MOCK=False` with a real
+   `OPENAI_API_KEY` in `backend/.env` for real analysis) — see the
+   "reasoning pipeline" section in [`backend/README.md`](backend/README.md).
 
 ## Platform scope note
 
