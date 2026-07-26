@@ -29,6 +29,25 @@ app depends on the provider rather than reading defines directly.
    misconfiguration — keep the files in sync).
 2. Add the corresponding field to `AppEnvironment`.
 
+## Reaching the backend from a physical device
+
+`dev.json`'s `API_BASE_URL` is `http://127.0.0.1:8000` — that's the
+**device's own** loopback, not your development machine's. It only works
+paired with:
+
+```bash
+adb reverse tcp:8000 tcp:8000
+```
+
+which forwards the connected device's port 8000 to your machine's port
+8000 over the existing USB connection. This is why `127.0.0.1` was chosen
+over `10.0.2.2` (the Android *emulator's* alias for host loopback, which
+doesn't apply to a real device) or a LAN IP (which would need the phone
+and dev machine on the same network, and the backend bound to `0.0.0.0`
+instead of its default `127.0.0.1`). Re-run the `adb reverse` command
+whenever the device reconnects — the mapping doesn't persist across USB
+disconnects.
+
 ## Secrets
 
 `dev.json` / `prod.json` currently hold no secrets, so they're committed.

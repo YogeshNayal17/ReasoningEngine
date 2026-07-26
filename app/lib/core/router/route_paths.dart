@@ -5,5 +5,6 @@
 /// results) are added in later milestones.
 abstract final class RoutePaths {
   static const String home = '/';
-  static const String ocrResult = '/ocr-result';
+  static const String analyzing = '/analyzing';
+  static const String analysisResult = '/analysis-result';
 }

@@ -16,7 +16,7 @@ project with its own dependency manifest and lifecycle:
 reasoning_engine/
 ├── app/       Flutter client (Android-first). See app/README.md.
 └── backend/   FastAPI service (OCR → claim extraction → reasoning).
-               Added in a later milestone — not present yet.
+               See backend/README.md.
 ```
 
 Keeping the client and backend as siblings (rather than the Flutter project
@@ -46,8 +46,11 @@ rather than all at once:
    bubble menu also offers "From clipboard / text" as a second path to the
    same result screen, skipping OCR entirely — see the Milestone 5 section
    in [`app/README.md`](app/README.md).
-6. Backend (FastAPI): claim extraction + reasoning pipeline.
-7. AI pipeline (OpenAI-backed reasoning prompts).
+6. **Backend (FastAPI).** ✅ done (mocked) — a single `POST /analyze`
+   endpoint returning a fixed mocked reasoning response, no AI calls yet,
+   see [`backend/README.md`](backend/README.md).
+7. AI pipeline: replace the mock with real claim extraction + reasoning
+   (OpenAI-backed prompts).
 
 ## Platform scope note
 
