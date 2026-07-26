@@ -3,6 +3,8 @@ package com.reasonai.reason_ai.overlay
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -12,21 +14,21 @@ import com.reasonai.reason_ai.R
 import kotlin.math.abs
 
 /**
- * Owns the single overlay window: a collapsed circular bubble that can be
- * dragged anywhere on screen, and expands into a small panel with a close
- * action on tap. A drag and a tap are disambiguated by total finger travel
- * ([DRAG_THRESHOLD_PX]) rather than a timer, so a slow tap never gets
- * misread as a drag.
- *
- * The expanded panel is intentionally just a label + close button today.
- * Milestone 3 (screen capture) adds its trigger as another child of
- * [expandedPanel] plus a new branch in [OverlayMethodChannelHandler] —
- * this class doesn't need to change shape to support that.
+ * Owns the single overlay window: a collapsed circular bubble that reacts
+ * to three gestures, disambiguated by finger travel and hold duration
+ * rather than a click listener:
+ * - drag: moves the bubble ([DRAG_THRESHOLD_PX] of travel).
+ * - short tap on the collapsed bubble: requests a capture — the product's
+ *   core "tap bubble, screen is captured" interaction.
+ * - long press ([LONG_PRESS_MS] held without moving): expands the bubble
+ *   into a panel with a close/stop action. A short tap while expanded
+ *   collapses it back.
  */
 class OverlayBubbleController(
     context: Context,
     private val windowManager: WindowManager,
     private val onCloseRequested: () -> Unit,
+    private val onCaptureRequested: () -> Unit,
 ) {
     private val view: View = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
     private val collapsedIcon: View = view.findViewById(R.id.bubble_collapsed)
@@ -50,6 +52,13 @@ class OverlayBubbleController(
     private var downLayoutX = 0
     private var downLayoutY = 0
     private var hasMoved = false
+    private var longPressFired = false
+
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private val longPressRunnable = Runnable {
+        longPressFired = true
+        if (!isExpanded) toggleExpanded()
+    }
 
     init {
         expandedPanel.visibility = View.GONE
@@ -62,6 +71,7 @@ class OverlayBubbleController(
     }
 
     fun detach() {
+        longPressHandler.removeCallbacks(longPressRunnable)
         windowManager.removeView(view)
     }
 
@@ -74,6 +84,8 @@ class OverlayBubbleController(
                 downLayoutX = layoutParams.x
                 downLayoutY = layoutParams.y
                 hasMoved = false
+                longPressFired = false
+                longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_MS)
                 return true
             }
 
@@ -82,6 +94,7 @@ class OverlayBubbleController(
                 val dy = event.rawY - downRawY
                 if (!hasMoved && (abs(dx) > DRAG_THRESHOLD_PX || abs(dy) > DRAG_THRESHOLD_PX)) {
                     hasMoved = true
+                    longPressHandler.removeCallbacks(longPressRunnable)
                 }
                 if (hasMoved) {
                     layoutParams.x = downLayoutX + dx.toInt()
@@ -92,8 +105,13 @@ class OverlayBubbleController(
             }
 
             MotionEvent.ACTION_UP -> {
-                if (!hasMoved) {
-                    toggleExpanded()
+                longPressHandler.removeCallbacks(longPressRunnable)
+                if (!hasMoved && !longPressFired) {
+                    if (isExpanded) {
+                        toggleExpanded()
+                    } else {
+                        onCaptureRequested()
+                    }
                 }
                 return true
             }
@@ -110,5 +128,6 @@ class OverlayBubbleController(
 
     companion object {
         private const val DRAG_THRESHOLD_PX = 12
+        private const val LONG_PRESS_MS = 400L
     }
 }

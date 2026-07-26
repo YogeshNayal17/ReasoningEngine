@@ -40,13 +40,19 @@ lib/
 │   └── utils/                  Result<T> — shared functional error handling
 ├── features/
 │   ├── home/presentation/      Landing screen; composes feature widgets
-│   └── overlay/                Floating bubble control (data + presentation)
+│   ├── overlay/                Floating bubble control (data + presentation)
+│   ├── capture/                Capture permission + crop UI (data + presentation)
+│   └── ocr/                    On-device text recognition (data + presentation)
 └── shared/widgets/             Reusable UI atoms (PrimaryButton, ...)
 
 android/app/src/main/kotlin/com/reasonai/reason_ai/
-├── MainActivity.kt             Registers platform channels; nothing else
-└── overlay/                    OverlayService, OverlayBubbleController,
-                                 OverlayMethodChannelHandler
+├── MainActivity.kt             Registers platform channels + the one
+│                                startActivityForResult flow (MediaProjection
+│                                consent) that has to live on an Activity
+├── overlay/                    OverlayService, OverlayBubbleController,
+│                                OverlayMethodChannelHandler
+└── capture/                    ScreenCaptureService, PendingCaptureStore,
+                                 CaptureMethodChannelHandler
 ```
 
 ### Dependency injection: Riverpod, not a service locator
@@ -72,12 +78,11 @@ there would be abstraction for its own sake.
 
 `core/utils/result.dart` defines a sealed `Result<T>` (`ResultSuccess` /
 `ResultError`) for operations that can fail in expected ways (network
-errors, OCR failures, ...). This is the one piece of "future-facing"
-infrastructure included before any repository exists to use it, because
+errors, OCR failures, ...). This was the one piece of "future-facing"
+infrastructure included before any repository existed to use it, because
 retrofitting error handling style onto every repository/data source after
-the fact is far more disruptive than deciding on it once, up front. Nothing
-uses it yet — that's expected until Milestone 5+ (OCR) / Milestone 6+
-(backend calls) add the first repositories.
+the fact is far more disruptive than deciding on it once, up front.
+`OcrController` (Milestone 5) is its first real consumer.
 
 ### Milestone 2: the overlay bubble is native, not Flutter
 
@@ -131,11 +136,118 @@ justification string for Play Console review.
 
 **What's genuinely done vs. what's future-proofed.** Drag, tap-to-expand/
 collapse, and a close button are real, working features — not stand-ins.
-What's *not* here yet, on purpose, is any capture trigger: adding one in
-Milestone 3 means adding a button to `OverlayBubbleController`'s expanded
-panel and a new `OverlayMethodChannelHandler` branch, without restructuring
-either. Building a disabled "Capture" button now would have been dead code
-per `CLAUDE.md`'s "never create placeholder services" — so it isn't there.
+What's *not* here yet, on purpose, is any capture trigger — see Milestone 3
+below for how that trigger actually landed (it changed the tap gesture
+itself, not just the expanded panel, per product direction after this
+milestone shipped).
+
+### Milestone 3: MediaProjection, and the bubble's gesture model changed
+
+**The tap gesture changed from Milestone 2.** The original brief's core
+interaction is "tap bubble → screen is captured" (one tap), but Milestone 2
+had already built and shipped tap = expand/collapse. Rather than bolt a
+second "Capture" button onto the expanded panel (two taps to capture,
+contradicting the one-tap vision), the gesture model was reworked in
+`OverlayBubbleController`: **short tap on the collapsed bubble now
+captures directly**; **long-press expands** the panel, which now exists
+only to close/stop the overlay; drag still repositions it. This is a
+product-direction change, not scope creep — flagging it here because it
+touched code Milestone 2's README described as finished.
+
+**Permission is requested once, reused for every capture.** `MediaProjection`
+consent is a system dialog ("Start now" / "Cancel") — re-prompting on every
+single bubble tap would defeat the point of a low-friction bubble. Instead,
+`ScreenCaptureService` holds the granted `MediaProjection` for as long as
+it's alive and creates a fresh `VirtualDisplay` + `ImageReader` per capture,
+tearing both down immediately after grabbing one frame — no continuous
+recording, just repeated on-demand single frames from one grant. The
+trade-off: Android shows its own persistent "screen recording" indicator
+for as long as that grant is held, on top of this app's own foreground
+notification — an OS-level privacy signal that can't be suppressed, and
+arguably shouldn't be.
+
+**Why the consent flow uses `startActivityForResult`, not the modern API.**
+`FlutterActivity` extends the plain `android.app.Activity`, not AndroidX's
+`ComponentActivity` — so `registerForActivityResult` (the current
+recommended API) isn't available on it at all. `MainActivity` overrides
+the classic `onActivityResult` instead, which Flutter's embedding
+explicitly supports for exactly this situation.
+
+**Why the captured bytes take a "pull on resume" path instead of an
+`EventChannel`.** The capture is triggered natively, inside a Service, by
+a bubble tap that can happen while the Flutter app is fully backgrounded.
+Getting the bytes to Dart could have used an `EventChannel` (native pushes
+as soon as it's ready) — instead, `ScreenCaptureService` stashes the PNG
+bytes in an in-memory `PendingCaptureStore`, brings `MainActivity` to the
+foreground, and `CaptureController` pulls them via a plain `MethodChannel`
+call on the next resume. This reuses the exact resume-refresh mechanism
+Milestone 2 already established for overlay permission, and sidesteps a
+real `EventChannel` footgun: a sink registered on one Flutter engine
+instance going stale if that engine is ever torn down and recreated,
+silently dropping events. One lifecycle-refresh pattern for both features
+was worth more than the marginal elegance of a push model here.
+
+**Milestone 3 originally stopped at a raw full-screen preview** (a
+`CapturePreviewScreen` showing the captured PNG with pinch-zoom, no region
+selection). It shipped and was tested that way, but is gone as of Milestone
+4 — replaced by `CaptureCropScreen`, which is what the user actually sees
+now after tapping the bubble. Noting this because Milestone 3 was still
+uncommitted when Milestone 4 landed, so there's no git history showing the
+preview screen ever existed standalone.
+
+### Milestone 4: drag-to-crop, in Flutter, no new dependency
+
+Once the app is in the foreground showing a captured screenshot, cropping
+is ordinary in-app UI — no `WindowManager`/system-window constraints apply
+here, so this is where Flutter actually gets to do the interaction work.
+`CaptureCropScreen` hand-rolls the selection rectangle with a
+`GestureDetector` (`onPanStart`/`onPanUpdate`) and a `CustomPainter` that
+dims everything outside the selection, snip-tool style, and the actual
+pixel crop is done with `dart:ui`'s `Canvas.drawImageRect` — no image/crop
+package needed, since `dart:ui` ships with Flutter.
+
+The one non-obvious piece: mapping a drag gesture (in on-screen widget
+coordinates) to a crop rectangle in the source image's pixel coordinates.
+The image is shown with `BoxFit.contain`, which can letterbox it (bars on
+two sides) if its aspect ratio doesn't match the screen — the crop math
+has to account for both the `BoxFit` scale factor and that letterbox
+offset, or the crop silently comes out shifted/wrong on some screens even
+though it looks right on the one you tested on. `applyBoxFit` (from
+Flutter's own `painting.dart`, not hand-derived) computes the correct
+scale/offset.
+
+### Milestone 5: on-device OCR, and why MediaProjection stayed
+
+Two things were reconsidered going into this milestone, based on feedback
+after Milestone 3 shipped:
+
+- **Could screen capture avoid `MediaProjection`'s consent dialog and
+  persistent indicator entirely**, to feel more like Android's "Circle to
+  Search"? Investigated `AccessibilityService.takeScreenshot()` (API 30+),
+  which genuinely is silent — no dialog, no indicator. Rejected: Google
+  Play has a real, actively-enforced policy restricting Accessibility
+  Service usage to apps providing genuine accessibility support, and using
+  it purely for screenshots is a well-documented way to get an app
+  rejected or removed. "Circle to Search" itself only gets away with
+  silent capture because it's a Google system-privileged component — not
+  a capability any third-party Play Store app can obtain. `MediaProjection`
+  stayed as-is; only the post-capture flow changed (straight into crop,
+  no separate preview stop) to make the interaction feel more immediate.
+- **`google_mlkit_text_recognition`** (MIT, `flutter-ml.dev`) over hand-
+  rolling OCR: recognition is a pre-trained ML model, not something
+  reasonable to build from scratch the way the overlay/capture native code
+  was. It wraps Google ML Kit's on-device text recognizer — fully offline
+  after the model's one-time download via Play Services, free, no API key
+  or Firebase project. `path_provider` (official Flutter-team package)
+  came along with it: ML Kit's reliable input API takes a file path, not
+  arbitrary encoded bytes, so the cropped PNG is written to a temp file
+  before recognition.
+
+`TextRecognizerService` isolates the plugin behind an interface (same
+reasoning as `OverlayBridge`/`CaptureBridge`), and `OcrController` is the
+first real user of `core/utils/result.dart`'s `Result<T>` — text
+recognition succeeding or failing is exactly the "operation with an
+expected failure mode" that type exists for.
 
 ### Linting
 

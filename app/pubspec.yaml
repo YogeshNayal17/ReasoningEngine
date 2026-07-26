@@ -24,6 +24,15 @@ dependencies:
   # Logging backend behind the AppLogger interface (lib/core/logging).
   logger: ^2.7.0
 
+  # On-device OCR (Milestone 5) — wraps Google ML Kit's text recognizer.
+  # Fully offline, free, no API key/Firebase project required.
+  google_mlkit_text_recognition: ^0.16.0
+
+  # Needed to write a cropped screenshot to a temp file: ML Kit's
+  # file-based InputImage API is the reliable way to feed it an
+  # already-decoded (non-raw-pixel) image.
+  path_provider: ^2.1.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

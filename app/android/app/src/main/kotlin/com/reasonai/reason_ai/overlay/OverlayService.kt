@@ -11,7 +11,10 @@ import android.os.IBinder
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.reasonai.reason_ai.MainActivity
 import com.reasonai.reason_ai.R
+import com.reasonai.reason_ai.capture.PendingCaptureStore
+import com.reasonai.reason_ai.capture.ScreenCaptureService
 
 /**
  * Foreground service that owns the overlay bubble's window for as long as
@@ -35,6 +38,7 @@ class OverlayService : Service() {
             context = this,
             windowManager = windowManager,
             onCloseRequested = ::stopSelf,
+            onCaptureRequested = ::handleCaptureRequested,
         )
         bubbleController?.attach()
         isRunning = true
@@ -48,6 +52,28 @@ class OverlayService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun handleCaptureRequested() {
+        val captureService = ScreenCaptureService.instance
+        if (captureService == null) {
+            // No screen-capture permission granted yet — surface the app
+            // so the user can grant it, rather than silently doing nothing.
+            bringAppToForeground()
+            return
+        }
+        captureService.captureOnce { bytes ->
+            if (bytes != null) {
+                PendingCaptureStore.put(bytes)
+            }
+            bringAppToForeground()
+        }
+    }
+
+    private fun bringAppToForeground() {
+        val intent = Intent(this, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        startActivity(intent)
+    }
 
     private fun startAsForeground() {
         val channel = NotificationChannel(

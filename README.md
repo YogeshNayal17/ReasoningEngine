@@ -33,9 +33,12 @@ rather than all at once:
 2. **Android overlay (floating bubble) feature.** ✅ done — draggable,
    expand/collapse, survives backgrounding, see the Milestone 2 section in
    [`app/README.md`](app/README.md).
-3. Screenshot capture.
-4. Region selector UI.
-5. OCR integration.
+3. **Screenshot capture.** ✅ done — MediaProjection, tap bubble to
+   capture, see the Milestone 3 section in [`app/README.md`](app/README.md).
+4. **Region selector UI.** ✅ done — drag-to-crop, see the Milestone 4
+   section in [`app/README.md`](app/README.md).
+5. **OCR integration.** ✅ done — on-device Google ML Kit, no backend, see
+   the Milestone 5 section in [`app/README.md`](app/README.md).
 6. Backend (FastAPI): claim extraction + reasoning pipeline.
 7. AI pipeline (OpenAI-backed reasoning prompts).
 

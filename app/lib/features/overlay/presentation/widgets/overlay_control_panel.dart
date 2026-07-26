@@ -5,38 +5,15 @@ import '../../../../shared/widgets/primary_button.dart';
 import '../controllers/overlay_controller.dart';
 
 /// Lets the user grant the overlay permission and toggle the floating
-/// bubble on/off. Observes app lifecycle because granting the permission
-/// happens in a system Settings screen outside the app — the only way to
-/// learn the result is to re-check when the user comes back.
-class OverlayControlPanel extends ConsumerStatefulWidget {
+/// bubble on/off. Resume-triggered refresh (needed because granting the
+/// permission happens in a system Settings screen outside the app) lives
+/// on `HomeScreen`, which composes this alongside `CaptureControlPanel` and
+/// needs the same resume hook — one observer instead of one per panel.
+class OverlayControlPanel extends ConsumerWidget {
   const OverlayControlPanel({super.key});
 
   @override
-  ConsumerState<OverlayControlPanel> createState() => _OverlayControlPanelState();
-}
-
-class _OverlayControlPanelState extends ConsumerState<OverlayControlPanel> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(overlayControllerProvider.notifier).refresh();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final overlayState = ref.watch(overlayControllerProvider);
     final controller = ref.read(overlayControllerProvider.notifier);
     final colorScheme = Theme.of(context).colorScheme;

@@ -5,4 +5,6 @@
 /// results) are added in later milestones.
 abstract final class RoutePaths {
   static const String home = '/';
+  static const String captureCrop = '/capture-crop';
+  static const String ocrResult = '/ocr-result';
 }
