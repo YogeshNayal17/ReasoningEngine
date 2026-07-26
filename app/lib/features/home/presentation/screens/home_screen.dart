@@ -13,7 +13,8 @@ import '../../../overlay/presentation/widgets/overlay_control_panel.dart';
 /// to either panel individually:
 /// - re-checking overlay/capture permission on every app resume (both
 ///   permissions are granted outside the app, in a system UI), and
-/// - navigating to the crop screen when a new capture arrives.
+/// - navigating to the OCR result when a new (already-cropped) capture
+///   arrives — selection itself happens natively, before the app opens.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -45,8 +46,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     ref.listen<CaptureState>(captureControllerProvider, (previous, next) {
-      if (next.lastCapture != null && next.lastCapture != previous?.lastCapture) {
-        context.push(RoutePaths.captureCrop);
+      if (next.capturedImage != null && next.capturedImage != previous?.capturedImage) {
+        context.push(RoutePaths.ocrResult);
       }
     });
 

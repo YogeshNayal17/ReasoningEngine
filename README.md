@@ -35,8 +35,10 @@ rather than all at once:
    [`app/README.md`](app/README.md).
 3. **Screenshot capture.** ✅ done — MediaProjection, tap bubble to
    capture, see the Milestone 3 section in [`app/README.md`](app/README.md).
-4. **Region selector UI.** ✅ done — drag-to-crop, see the Milestone 4
-   section in [`app/README.md`](app/README.md).
+4. **Region selector UI.** ✅ done — drag-to-select happens as a native
+   overlay directly over whatever app you're in, confirmed before the app
+   ever opens (reworked after Milestone 4 shipped; see the Milestone 4 and
+   "post-Milestone-5 rework" sections in [`app/README.md`](app/README.md)).
 5. **OCR integration.** ✅ done — on-device Google ML Kit, no backend, see
    the Milestone 5 section in [`app/README.md`](app/README.md).
 6. Backend (FastAPI): claim extraction + reasoning pipeline.

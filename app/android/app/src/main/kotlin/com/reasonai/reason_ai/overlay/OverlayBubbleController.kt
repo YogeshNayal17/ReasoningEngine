@@ -18,8 +18,9 @@ import kotlin.math.abs
  * to three gestures, disambiguated by finger travel and hold duration
  * rather than a click listener:
  * - drag: moves the bubble ([DRAG_THRESHOLD_PX] of travel).
- * - short tap on the collapsed bubble: requests a capture — the product's
- *   core "tap bubble, screen is captured" interaction.
+ * - short tap on the collapsed bubble: requests a capture, which
+ *   [OverlayService] follows with a full-screen selection overlay — the
+ *   product's core "tap bubble, drag to select" interaction.
  * - long press ([LONG_PRESS_MS] held without moving): expands the bubble
  *   into a panel with a close/stop action. A short tap while expanded
  *   collapses it back.
@@ -73,6 +74,11 @@ class OverlayBubbleController(
     fun detach() {
         longPressHandler.removeCallbacks(longPressRunnable)
         windowManager.removeView(view)
+    }
+
+    /** Hidden briefly during capture so the bubble itself doesn't end up in the screenshot. */
+    fun setVisible(visible: Boolean) {
+        view.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     @SuppressLint("ClickableViewAccessibility")

@@ -46,17 +46,17 @@ void main() {
 
     final state = container.read(captureControllerProvider);
     expect(state.hasPermission, isTrue);
-    expect(state.lastCapture, equals([1, 2, 3]));
+    expect(state.capturedImage, equals([1, 2, 3]));
   });
 
-  test('a second refresh with no new capture leaves lastCapture unchanged', () async {
+  test('a second refresh with no new capture leaves capturedImage unchanged', () async {
     bridge.pendingCapture = Uint8List.fromList([9]);
     await container.read(captureControllerProvider.notifier).refresh();
-    final first = container.read(captureControllerProvider).lastCapture;
+    final first = container.read(captureControllerProvider).capturedImage;
 
     await container.read(captureControllerProvider.notifier).refresh();
 
-    expect(container.read(captureControllerProvider).lastCapture, same(first));
+    expect(container.read(captureControllerProvider).capturedImage, same(first));
   });
 
   test('requestPermission updates hasPermission from a granted result', () async {
@@ -73,16 +73,5 @@ void main() {
     await container.read(captureControllerProvider.notifier).requestPermission();
 
     expect(container.read(captureControllerProvider).hasPermission, isFalse);
-  });
-
-  test('setCroppedImage stores the cropped bytes without touching lastCapture', () async {
-    bridge.pendingCapture = Uint8List.fromList([1, 2, 3]);
-    await container.read(captureControllerProvider.notifier).refresh();
-
-    container.read(captureControllerProvider.notifier).setCroppedImage(Uint8List.fromList([4, 5]));
-
-    final state = container.read(captureControllerProvider);
-    expect(state.croppedImage, equals([4, 5]));
-    expect(state.lastCapture, equals([1, 2, 3]));
   });
 }

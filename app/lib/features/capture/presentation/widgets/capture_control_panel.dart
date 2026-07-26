@@ -41,7 +41,7 @@ class CaptureControlPanel extends ConsumerWidget {
               onPressed: controller.requestPermission,
             )
           else
-            const Text('Tap the bubble to capture your screen.'),
+            const Text('Tap the bubble, then drag to select what you want to analyze.'),
         ],
       ),
     );
