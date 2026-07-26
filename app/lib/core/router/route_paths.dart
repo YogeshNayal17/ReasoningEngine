@@ -6,5 +6,8 @@
 abstract final class RoutePaths {
   static const String home = '/';
   static const String analyzing = '/analyzing';
-  static const String analysisResult = '/analysis-result';
+  static const String coreClaim = '/core-claim';
+  static const String analysis = '/analysis';
+  static const String evidence = '/evidence';
+  static const String summary = '/summary';
 }

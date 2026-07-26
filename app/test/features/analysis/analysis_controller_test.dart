@@ -26,7 +26,15 @@ void main() {
   });
 
   test('analyze stores a success result', () async {
-    const analysis = AnalyzeResult(claim: 'claim', insights: [], evidence: [], summary: 'summary');
+    const analysis = AnalyzeResult(
+      claim: 'claim',
+      whatThisMeans: 'what it means',
+      insights: [],
+      questions: [],
+      context: [],
+      evidence: [],
+      summary: 'summary',
+    );
     api.nextResult = const Result.success(analysis);
 
     await container.read(analysisControllerProvider.notifier).analyze('some text');

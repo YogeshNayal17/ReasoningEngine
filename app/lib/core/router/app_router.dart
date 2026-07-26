@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/analysis/presentation/screens/analysis_result_screen.dart';
+import '../../features/analysis/presentation/screens/analysis_screen.dart';
 import '../../features/analysis/presentation/screens/analyzing_screen.dart';
+import '../../features/analysis/presentation/screens/core_claim_screen.dart';
+import '../../features/analysis/presentation/screens/evidence_screen.dart';
+import '../../features/analysis/presentation/screens/summary_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import 'route_paths.dart';
 
@@ -23,9 +26,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AnalyzingScreen(),
       ),
       GoRoute(
-        path: RoutePaths.analysisResult,
-        name: 'analysisResult',
-        builder: (context, state) => const AnalysisResultScreen(),
+        path: RoutePaths.coreClaim,
+        name: 'coreClaim',
+        builder: (context, state) => const CoreClaimScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.analysis,
+        name: 'analysis',
+        builder: (context, state) => const AnalysisScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.evidence,
+        name: 'evidence',
+        builder: (context, state) => const EvidenceScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.summary,
+        name: 'summary',
+        builder: (context, state) => const SummaryScreen(),
       ),
     ],
   );

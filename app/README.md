@@ -399,6 +399,70 @@ handle circles at the four corners of the selection rectangle, matching
 the mockup's visual treatment more closely than the border-only rectangle
 from the original rework.
 
+### Milestone 6: backend integration and the four result screens
+
+Milestone 6's actual backend (`backend/`) is a single mocked
+`POST /analyze` endpoint — see `backend/README.md`. This section covers
+wiring the app to it and building the result UI the product mockup calls
+for, on top of that mocked data.
+
+**New `analysis` feature**, mirroring the existing data/presentation split:
+`AnalysisApi` (`features/analysis/data/analysis_api.dart`) isolates
+`package:http` behind an interface the same way `CaptureBridge`/
+`TextRecognizerService` isolate their platform channels — nothing else
+touches `http` directly. `AnalysisController` mirrors `OcrController`'s
+`Result<T>`-based shape exactly, since a network call is exactly the
+same "can fail in an expected way" case.
+
+**`http` package added** — the official Dart-team package, a thin wrapper
+over `dart:io`/web HTTP. No heavier client (`dio`, `chopper`) is justified
+for one JSON POST call.
+
+**Reaching a locally-run backend from a physical device.** `API_BASE_URL`
+in `env/dev.json` is `http://127.0.0.1:8000` — the *device's own*
+loopback — paired with `adb reverse tcp:8000 tcp:8000`, which forwards
+that port to the dev machine over the existing USB connection. This was
+chosen over `10.0.2.2` (the Android *emulator's* alias, not applicable to
+a real device) or a LAN IP (would need the phone and dev machine on the
+same network, and the backend bound to `0.0.0.0`). The forward doesn't
+survive a USB disconnect/reconnect — see `env/README.md`.
+
+**The "Analyzing" screen intentionally fakes its pacing.** `AnalyzingScreen`
+holds for a fixed 5 seconds and advances its five checklist steps on a
+1-second timer, regardless of how long OCR + the network call actually
+take (currently milliseconds, since the backend is mocked). This is a
+deliberate product decision — matching the mockup's "this usually takes
+5-10 seconds" framing — not a claim that the steps reflect real pipeline
+stages; the mocked backend doesn't report intermediate progress, so
+there's no real signal to drive them with yet. Milestone 7's real
+pipeline could swap the timer for actual stage events without changing
+this screen's shape.
+
+**Four result screens, matching the product mockup**: `CoreClaimScreen` →
+`AnalysisScreen` (Overview/Questions/Context shown inline; tapping
+"Evidence" pushes a dedicated `EvidenceScreen` instead of switching tab
+content, since the mockup gives Evidence its own search/filter UI
+distinct from a plain tab body) → `EvidenceScreen` (All/For/Against/Neutral
+filter chips over the same evidence list) → `SummaryScreen`. All four read
+the completed result from `analysisControllerProvider` rather than route
+arguments, consistent with how `OcrResultScreen` (this milestone's
+predecessor) read from `captureControllerProvider`.
+
+**Unimplemented actions get an honest "Coming soon", not silence.**
+"Ask a follow-up question" / "Save this analysis" / "Share" (on
+`SummaryScreen`) and a couple of decorative icon buttons elsewhere have no
+backing feature yet — Milestone 7 and beyond will give some of them real
+behavior. Rather than wiring them to nothing (a button that visibly does
+nothing reads as broken) or building throwaway functionality ahead of
+need, they show a shared `showComingSoon()` snackbar. "New selection" is
+the one action that's real today — it returns to Home.
+
+**The backend's mocked schema grew to match the mockup's actual content**:
+`what_this_means`, `questions`, `context`, and each insight got a `kind`
+(`strength`/`question`/`context`, driving which icon the client shows)
+and an optional `tag` (e.g. "Moderate"). This is still all fixed
+placeholder text — Milestone 7 changes the values, not this shape.
+
 ### Linting
 
 `analysis_options.yaml` extends `flutter_lints` and turns on

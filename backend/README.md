@@ -41,14 +41,20 @@ Response (mocked — see `app/schemas.py` for the full shape):
 ```json
 {
   "claim": "Within 20 years, AI will be smarter than any single human.",
-  "insights": [{ "title": "Evidence strength", "detail": "..." }],
+  "what_this_means": "...",
+  "insights": [{ "kind": "strength", "title": "Evidence strength", "detail": "...", "tag": "Moderate" }],
+  "questions": ["..."],
+  "context": ["..."],
   "evidence": [{ "stance": "neutral", "text": "...", "source": "N/A" }],
   "summary": "This is a mocked reasoning response for Milestone 6. No AI has analyzed this claim."
 }
 ```
 
-The response shape mirrors the "Core Claim / Key Insights / Evidence /
-Summary" structure from the product mockup, since that's the most
-concrete spec available for what a real reasoning response should
-contain — Milestone 7 fills these fields with real analysis instead of
-fixed placeholder text.
+The response shape mirrors the "Core Claim / Analysis / Evidence /
+Summary" screens from the product mockup, since that's the most concrete
+spec available for what a real reasoning response should contain —
+Milestone 7 fills these fields with real analysis instead of fixed
+placeholder text. `insights[].kind` is one of `strength` / `question` /
+`context`, driving which icon the client shows (evidence strength,
+open question, missing context) — chosen to match the three insight
+rows shown in the mockup's Analysis screen.
