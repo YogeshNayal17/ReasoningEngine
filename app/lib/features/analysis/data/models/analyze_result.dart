@@ -1,8 +1,33 @@
 /// Mirrors the backend's `AnalyzeResponse` shape (`backend/app/schemas.py`).
-/// Currently always mocked data — Milestone 7 will make the values real,
-/// not the shape. `toJson`/`fromJson` round-trip through the same shape so
-/// a saved analysis (see `SavedAnalysis`) can be written to disk and read
-/// back identically to what the backend returned.
+/// `toJson`/`fromJson` round-trip through the same shape so a saved analysis
+/// can be written to disk and read back identically to what the backend returned.
+
+// Fixed domain categories — must stay in sync with:
+//   backend/app/prompts.py  →  DOMAINS tuple
+//   backend/app/schemas.py  →  AnalyzeResponse.domain Literal
+enum Domain {
+  science,
+  health,
+  politics,
+  finance,
+  technology,
+  general;
+
+  static Domain fromJson(String? value) => Domain.values.firstWhere(
+        (d) => d.name == value,
+        orElse: () => Domain.general,
+      );
+
+  String toJson() => name;
+}
+
+// Fixed insight tag labels — must stay in sync with backend/app/prompts.py
+const kInsightTags = {
+  'High', 'Moderate', 'Low',
+  'Verified', 'Disputed', 'Unverified',
+  'Consensus', 'Emerging', 'Contested', 'Opinion',
+};
+
 enum InsightKind { strength, question, context }
 
 InsightKind _insightKindFromJson(String value) {
@@ -69,7 +94,7 @@ class AnalyzeResult {
     required this.context,
     required this.evidence,
     required this.summary,
-    this.domain = 'general',
+    this.domain = Domain.general,
   });
 
   final String claim;
@@ -79,7 +104,7 @@ class AnalyzeResult {
   final List<String> context;
   final List<EvidenceItem> evidence;
   final String summary;
-  final String domain;
+  final Domain domain;
 
   factory AnalyzeResult.fromJson(Map<String, dynamic> json) {
     return AnalyzeResult(
@@ -94,7 +119,7 @@ class AnalyzeResult {
           .map((item) => EvidenceItem.fromJson(item as Map<String, dynamic>))
           .toList(),
       summary: json['summary'] as String,
-      domain: json['domain'] as String? ?? 'general',
+      domain: Domain.fromJson(json['domain'] as String?),
     );
   }
 
@@ -106,6 +131,6 @@ class AnalyzeResult {
         'context': context,
         'evidence': evidence.map((item) => item.toJson()).toList(),
         'summary': summary,
-        'domain': domain,
+        'domain': domain.toJson(),
       };
 }

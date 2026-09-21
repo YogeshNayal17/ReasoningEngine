@@ -12,7 +12,7 @@ from openai import APIConnectionError, APIStatusError, OpenAI
 from pydantic import ValidationError
 
 from .config import Settings
-from .domains import UNIVERSAL_PROMPT
+from .prompts import DOMAINS, build_system_prompt
 from .schemas import AnalyzeResponse, ChatMessage, ChatResponse
 
 
@@ -114,7 +114,7 @@ Answer in plain text — no JSON, no markdown headers. Be direct and conversatio
 
 def analyze_with_ollama(text: str, settings: Settings, sources_block: str = "") -> AnalyzeResponse:
     client = _client(settings)
-    system_prompt = UNIVERSAL_PROMPT if not sources_block else f"{UNIVERSAL_PROMPT}\n\n{sources_block}"
+    system_prompt = build_system_prompt(sources_block=sources_block)
     data = _chat_json(client, settings.llm_model, system_prompt, text)
     return _parse_or_retry(client, settings.llm_model, system_prompt, text, data)
 
@@ -123,8 +123,7 @@ def _parse_or_retry(
     client: OpenAI, model: str, system_prompt: str, text: str, data: dict
 ) -> AnalyzeResponse:
     """Try to build an AnalyzeResponse; retry once with a stricter prompt if fields are missing."""
-    valid_domains = {"science", "health", "politics", "finance", "technology", "general"}
-    if data.get("domain") not in valid_domains:
+    if data.get("domain") not in DOMAINS:
         data["domain"] = "general"
 
     # Fill in safe defaults for fields the model commonly omits so minor gaps don't crash.
@@ -150,7 +149,7 @@ def _parse_or_retry(
         "Return only the JSON object — no prose, no markdown fences."
     )
     data2 = _chat_json(client, model, retry_prompt, text)
-    if data2.get("domain") not in valid_domains:
+    if data2.get("domain") not in DOMAINS:
         data2["domain"] = "general"
     data2.setdefault("claim", text[:200])
     data2.setdefault("what_this_means", "")

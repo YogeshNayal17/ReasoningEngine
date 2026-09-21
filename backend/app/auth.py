@@ -4,11 +4,14 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt as _bcrypt
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from .database import db
+
+load_dotenv()
 
 _bearer = HTTPBearer()
 

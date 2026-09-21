@@ -525,7 +525,7 @@ class _BiasChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        domain.toUpperCase(),
+        domain.name.toUpperCase(),
         style: const TextStyle(fontSize: 10, color: Color(0xFF45474C), fontWeight: FontWeight.w600),
       ),
     );

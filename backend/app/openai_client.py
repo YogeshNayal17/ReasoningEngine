@@ -14,7 +14,14 @@ from openai import OpenAI
 from pydantic import ValidationError
 
 from .config import Settings
-from .domains import DOMAIN_DETECTION_PROMPT, DOMAIN_PROMPTS, UNIVERSAL_PROMPT
+from .prompts import DOMAIN_PROMPTS, DOMAINS, build_system_prompt
+
+DOMAIN_DETECTION_PROMPT = (
+    "Classify the following text into exactly one of these domains: "
+    f"{', '.join(DOMAINS)}.\n"
+    'Respond with a single JSON object: {"domain": "<one of the domains above>"}, '
+    'and nothing else. If none fit well, use "general".'
+)
 from .schemas import AnalyzeResponse
 
 
@@ -50,14 +57,14 @@ def detect_domain(text: str, settings: Settings) -> str:
     client = _client(settings)
     data = _chat_json(client, settings, DOMAIN_DETECTION_PROMPT, text)
     domain = data.get("domain", "general")
-    return domain if domain in DOMAIN_PROMPTS else "general"
+    return domain if domain in DOMAINS else "general"
 
 
 def analyze_with_openai(text: str, settings: Settings) -> AnalyzeResponse:
     client = _client(settings)
     domain = detect_domain(text, settings)
 
-    system_prompt = f"{UNIVERSAL_PROMPT}\n\n{DOMAIN_PROMPTS[domain]}"
+    system_prompt = build_system_prompt(domain=domain)
     data = _chat_json(client, settings, system_prompt, text)
     data["domain"] = domain
 

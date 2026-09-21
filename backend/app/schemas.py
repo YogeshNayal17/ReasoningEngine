@@ -79,4 +79,4 @@ class AnalyzeResponse(BaseModel):
     context: list[str]
     evidence: list[EvidenceItem]
     summary: str
-    domain: str = "general"
+    domain: Literal["science", "health", "politics", "finance", "technology", "general"] = "general"
