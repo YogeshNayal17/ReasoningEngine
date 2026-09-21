@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../shared/widgets/app_bottom_nav.dart';
 import '../../data/models/analyze_result.dart';
 import '../controllers/analysis_controller.dart';
 import '../widgets/coming_soon.dart';
@@ -72,6 +73,7 @@ class _EvidenceScreenState extends ConsumerState<EvidenceScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const AppBottomNav(activeTab: AppNavTab.reasoning),
     );
   }
 

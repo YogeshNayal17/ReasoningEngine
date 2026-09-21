@@ -20,6 +20,7 @@ Be balanced and evidence-based: present genuine evidence for and against, don't 
 
 Respond with a single JSON object matching exactly this shape, and nothing else — no markdown, no commentary outside the JSON:
 {
+  "domain": "science" | "health" | "politics" | "finance" | "technology" | "general",
   "claim": string,
   "what_this_means": string,
   "insights": [
@@ -33,7 +34,9 @@ Respond with a single JSON object matching exactly this shape, and nothing else 
   "summary": string
 }
 
-"insights" should have 2-4 items covering at least one of each kind where relevant. "evidence" should include at least one "for" and one "against" item when genuine evidence exists on both sides — don't manufacture a false balance if one side is essentially unsupported."""
+"domain" must be one of the six values above — pick whichever best fits the claim's subject matter.
+"insights" should have 2-4 items covering at least one of each kind where relevant.
+"evidence" should include at least one "for" and one "against" item when genuine evidence exists on both sides — don't manufacture a false balance if one side is essentially unsupported."""
 
 DOMAIN_PROMPTS: dict[str, str] = {
     "science": (

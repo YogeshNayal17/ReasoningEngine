@@ -38,6 +38,18 @@ dependencies:
   # heavier client (dio, chopper) is needed for one JSON POST call.
   http: ^1.2.2
 
+  # Secure token storage — uses Android Keystore / iOS Keychain.
+  flutter_secure_storage: ^9.2.4
+
+  # Persist simple non-sensitive prefs (user name, is_nerd flag).
+  shared_preferences: ^2.5.3
+
+  # Render markdown in chat assistant bubbles.
+  flutter_markdown: ^0.7.6
+
+  # Open URLs from markdown links in the system browser.
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

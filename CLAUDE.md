@@ -12,6 +12,36 @@
 - Minimize platform-specific code by isolating Android-specific functionality behind interfaces where practical.
 - Do not assume anything, ask questions in case of any doubts. Restrict to max 5 questions.
 
+# Developer Notes
+
+After every prompt response, update `developer_notes.xlsx` in the repo root.
+This Excel workbook is the living technical reference for the project.
+
+## Sheets
+
+| Sheet | Purpose |
+|---|---|
+| Functional Requirements | Every user-facing feature (FR-xxx IDs) |
+| Non-Functional Requirements | Security, reliability, performance (NFR-xxx) |
+| Stack | All technologies, libraries, and versions |
+| Frontend | Flutter/Dart implementation details |
+| Backend | FastAPI/Python implementation details |
+| DB | SQLite table/column reference |
+| Key Design Decisions | Architectural choices and their rationale |
+| Environment Variables | All .env variables with purpose and defaults |
+| Active Bugs | Known unresolved issues (BUG-xxx) |
+| Resolved Bugs | Fixed issues with root cause and fix (RBUG-xxx) |
+
+## Update rules
+
+- Every row has **Created Date** and **Modified Date** columns (YYYY-MM-DD).
+- **Do not add a new row** if an existing row covers the same fact — update the existing row and change Modified Date only.
+- Add a new row only for a genuinely new fact, feature, bug, or decision.
+- When a bug is fixed, move its row from Active Bugs to Resolved Bugs and set Resolved Date.
+- When a requirement or design decision changes, update the existing row (not a new one).
+- Use the backend venv Python to run the update script if regenerating from scratch:
+  `.\venv\Scripts\python.exe create_dev_notes.py` (from `backend/`)
+
 # Testing & Build Workflow
 
 - Don't do a full APK rebuild + reinstall for trivial or Dart-only changes

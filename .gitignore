@@ -1,14 +1,14 @@
-# OS
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 
-# Editors
-.vscode/
-.idea/
-*.iml
+# Claude Code local config (MCP servers, personal settings)
+.mcp.json
+.claude/settings.local.json
 
-# Claude Code local state
-.claude/
-
-# Each sub-project (app/, backend/) keeps its own .gitignore for
-# toolchain-specific artifacts (build/, .dart_tool/, __pycache__, venv, ...).
+# OS
+desktop.ini

@@ -69,6 +69,7 @@ class AnalyzeResult {
     required this.context,
     required this.evidence,
     required this.summary,
+    this.domain = 'general',
   });
 
   final String claim;
@@ -78,6 +79,7 @@ class AnalyzeResult {
   final List<String> context;
   final List<EvidenceItem> evidence;
   final String summary;
+  final String domain;
 
   factory AnalyzeResult.fromJson(Map<String, dynamic> json) {
     return AnalyzeResult(
@@ -92,6 +94,7 @@ class AnalyzeResult {
           .map((item) => EvidenceItem.fromJson(item as Map<String, dynamic>))
           .toList(),
       summary: json['summary'] as String,
+      domain: json['domain'] as String? ?? 'general',
     );
   }
 
@@ -103,5 +106,6 @@ class AnalyzeResult {
         'context': context,
         'evidence': evidence.map((item) => item.toJson()).toList(),
         'summary': summary,
+        'domain': domain,
       };
 }

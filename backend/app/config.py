@@ -25,13 +25,15 @@ def _str_to_bool(value: str) -> bool:
 @dataclass(frozen=True)
 class Settings:
     use_mock: bool
-    openai_api_key: str | None
-    openai_model: str
+    llm_base_url: str
+    llm_model: str
+    llm_api_key: str
 
 
 def get_settings() -> Settings:
     return Settings(
         use_mock=_str_to_bool(os.getenv("USE_MOCK", "True")),
-        openai_api_key=os.getenv("OPENAI_API_KEY") or None,
-        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        llm_base_url=os.getenv("LLM_BASE_URL", "http://localhost:11434/v1"),
+        llm_model=os.getenv("LLM_MODEL", "llama3.2:3b"),
+        llm_api_key=os.getenv("LLM_API_KEY", "ollama"),
     )

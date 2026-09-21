@@ -16,7 +16,7 @@ class AppEnvironment {
         name: String.fromEnvironment('ENV_NAME', defaultValue: 'dev'),
         apiBaseUrl: String.fromEnvironment(
           'API_BASE_URL',
-          defaultValue: 'http://10.0.2.2:8000',
+          defaultValue: 'http://192.168.0.106:8000',
         ),
         verboseLogging: bool.fromEnvironment(
           'ENABLE_VERBOSE_LOGGING',

@@ -4,14 +4,20 @@ import 'package:reason_ai/core/error/app_failure.dart';
 import 'package:reason_ai/core/utils/result.dart';
 import 'package:reason_ai/features/analysis/data/analysis_api.dart';
 import 'package:reason_ai/features/analysis/data/models/analyze_result.dart';
+import 'package:reason_ai/features/analysis/data/models/chat_message.dart';
 import 'package:reason_ai/features/analysis/presentation/controllers/analysis_controller.dart';
 
 class FakeAnalysisApi implements AnalysisApi {
   Result<AnalyzeResult>? nextResult;
 
   @override
-  Future<Result<AnalyzeResult>> analyze(String text) async {
+  Future<Result<AnalyzeResult>> analyze({required String source, required String content}) async {
     return nextResult ?? const Result.failure(UnexpectedFailure('not configured'));
+  }
+
+  @override
+  Future<Result<String>> chat({required Map<String, dynamic> analysis, required List<ChatMessage> history, required String question}) async {
+    return const Result.success('mock answer');
   }
 }
 
@@ -37,7 +43,7 @@ void main() {
     );
     api.nextResult = const Result.success(analysis);
 
-    await container.read(analysisControllerProvider.notifier).analyze('some text');
+    await container.read(analysisControllerProvider.notifier).analyze(source: 'whatsapp', content: 'some text');
 
     final state = container.read(analysisControllerProvider);
     expect(state.isLoading, isFalse);
@@ -47,7 +53,7 @@ void main() {
   test('analyze stores a failure result', () async {
     api.nextResult = const Result.failure(NetworkFailure());
 
-    await container.read(analysisControllerProvider.notifier).analyze('some text');
+    await container.read(analysisControllerProvider.notifier).analyze(source: 'whatsapp', content: 'some text');
 
     final state = container.read(analysisControllerProvider);
     expect(

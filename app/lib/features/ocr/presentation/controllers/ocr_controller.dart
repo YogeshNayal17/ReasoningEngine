@@ -26,23 +26,16 @@ class OcrState {
 /// text recognition is exactly the "can fail in an expected way" case
 /// that type was built for.
 class OcrController extends Notifier<OcrState> {
-  late final TextRecognizerService _service;
-  late final AppLogger _logger;
-
   @override
-  OcrState build() {
-    _service = ref.watch(textRecognizerServiceProvider);
-    _logger = ref.watch(appLoggerProvider);
-    return const OcrState();
-  }
+  OcrState build() => const OcrState();
 
   Future<void> recognizeText(Uint8List imageBytes) async {
     state = state.copyWith(isLoading: true);
     try {
-      final text = await _service.recognizeText(imageBytes);
+      final text = await ref.read(textRecognizerServiceProvider).recognizeText(imageBytes);
       state = OcrState(result: Result.success(text));
     } catch (error, stackTrace) {
-      _logger.error('Text recognition failed', error: error, stackTrace: stackTrace);
+      ref.read(appLoggerProvider).error('Text recognition failed', error: error, stackTrace: stackTrace);
       state = const OcrState(result: Result.failure(UnexpectedFailure('Could not extract text from the image.')));
     }
   }

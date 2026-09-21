@@ -8,16 +8,67 @@ the box with no OpenAI account, key, or cost until someone deliberately
 sets it up in `.env`.
 """
 
+import re
+
+import httpx
+
 from .config import Settings, get_settings
-from .openai_client import analyze_with_openai
+from .ollama_client import analyze_with_ollama
 from .schemas import AnalyzeResponse, EvidenceItem, KeyInsight
+from .search_client import format_for_prompt, search
 
 
-def analyze(text: str, settings: Settings | None = None) -> AnalyzeResponse:
+def analyze(source: str, content: str, settings: Settings | None = None) -> AnalyzeResponse:
     settings = settings or get_settings()
+    text = _resolve_content(source, content)
     if settings.use_mock:
         return _mock_analyze(text)
-    return analyze_with_openai(text, settings)
+    results = search(text)
+    sources_block = format_for_prompt(results)
+    return analyze_with_ollama(text, settings, sources_block=sources_block)
+
+
+def _resolve_content(source: str, content: str) -> str:
+    """Return plain text ready for analysis.
+
+    For whatsapp the content is already the message text.
+    For instagram/facebook the content is a URL — fetch the page and extract
+    human-readable text via OG meta tags, falling back to the URL itself if
+    the page is unavailable (login-gated or network error).
+    """
+    if source == "whatsapp":
+        return content
+    return _fetch_url_text(content)
+
+
+def _fetch_url_text(url: str) -> str:
+    """Fetch a URL and extract the best available text via OG meta tags."""
+    try:
+        response = httpx.get(
+            url,
+            timeout=10,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ReasonAI/1.0)"},
+        )
+        if response.status_code != 200:
+            return url
+        html = response.text
+        # Try og:description first (richest text), then og:title, then <title>
+        for pattern in [
+            r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:description',
+            r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:title',
+        ]:
+            match = re.search(pattern, html, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        title_match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
+        if title_match:
+            return title_match.group(1).strip()
+        return url
+    except Exception:
+        return url
 
 
 def _mock_analyze(text: str) -> AnalyzeResponse:

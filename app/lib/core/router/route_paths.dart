@@ -11,4 +11,7 @@ abstract final class RoutePaths {
   static const String analysis = '/analysis';
   static const String evidence = '/evidence';
   static const String summary = '/summary';
+  static const String chat = '/chat';
+  static const String auth = '/auth';
+  static const String pricing = '/pricing';
 }

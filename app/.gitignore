@@ -1,44 +1,29 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# VS Code
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
+build/
 .pub-cache/
 .pub/
-/build/
+*.g.dart
+*.freezed.dart
 
-# Symbolication related
-app.*.symbols
+# Android
+app/android/.gradle/
+app/android/captures/
+app/android/local.properties
+app/android/GeneratedPluginRegistrant.java
+*.apk
+*.aab
+*.keystore
+*.jks
 
-# Obfuscation related
-app.*.map.json
+# iOS
+app/ios/.symlinks/
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Flutter/Generated.xcconfig
+app/ios/Pods/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Per-developer environment overrides (may contain real API keys/secrets
-# once the env files stop being just base URLs and flags).
-env/*.local.json
+# Coverage
+coverage/

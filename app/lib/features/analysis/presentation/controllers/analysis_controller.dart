@@ -20,26 +20,21 @@ class AnalysisState {
   }
 }
 
-/// Mirrors `OcrController`'s shape — same `Result<T>` pattern for an
-/// operation (a network call, this time) with an expected failure mode.
 class AnalysisController extends Notifier<AnalysisState> {
-  late final AnalysisApi _api;
-
   @override
   AnalysisState build() {
-    _api = ref.watch(analysisApiProvider);
+    ref.watch(analysisApiProvider);
     return const AnalysisState();
   }
 
-  Future<void> analyze(String text) async {
+  Future<void> analyze({required String source, required String content}) async {
     state = state.copyWith(isLoading: true);
-    final result = await _api.analyze(text);
+    final result = await ref.read(analysisApiProvider).analyze(source: source, content: content);
     state = AnalysisState(result: result);
   }
 
   /// Loads a previously saved analysis into the same slot a live `/analyze`
-  /// call would fill, so the result screens (which only ever read from
-  /// this provider) can show it without needing a separate read path.
+  /// call would fill, so the result screens can show it without a separate read path.
   void viewSaved(AnalyzeResult analysis) {
     state = AnalysisState(result: Result.success(analysis));
   }

@@ -1,7 +1,37 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
-.pytest_cache/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
 
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables (contains secrets)
 # Real secrets live here locally; .env.example documents the required
 # keys without committing real values.
+.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy / type checking
+.mypy_cache/
+.dmypy.json

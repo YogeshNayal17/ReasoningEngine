@@ -4,25 +4,23 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../auth/presentation/controllers/auth_controller.dart';
 import 'models/analyze_result.dart';
 import 'models/saved_analysis.dart';
 
-/// Persists saved analyses as a single JSON file in the app's documents
-/// directory, via `path_provider` — already a dependency (Milestone 5's
-/// OCR temp-file handling), so this needs no new package. A flat JSON file
-/// is enough for a list that only ever grows by explicit user action; a
-/// real database would be solving a problem this feature doesn't have.
 abstract class SavedAnalysesRepository {
   Future<List<SavedAnalysis>> loadAll();
   Future<void> save(AnalyzeResult analysis);
 }
 
 class FileSavedAnalysesRepository implements SavedAnalysesRepository {
-  static const _fileName = 'saved_analyses.json';
+  FileSavedAnalysesRepository(this._userId);
+
+  final int _userId;
 
   Future<File> _file() async {
     final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/$_fileName');
+    return File('${directory.path}/saved_analyses_$_userId.json');
   }
 
   @override
@@ -45,5 +43,6 @@ class FileSavedAnalysesRepository implements SavedAnalysesRepository {
 }
 
 final savedAnalysesRepositoryProvider = Provider<SavedAnalysesRepository>((ref) {
-  return FileSavedAnalysesRepository();
+  final userId = ref.watch(authProvider).user?.userId ?? 0;
+  return FileSavedAnalysesRepository(userId);
 });

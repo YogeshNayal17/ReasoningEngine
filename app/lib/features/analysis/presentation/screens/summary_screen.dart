@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../shared/widgets/app_bottom_nav.dart';
+import '../../data/models/claim_input.dart';
 import '../controllers/analysis_controller.dart';
-import '../controllers/saved_analyses_controller.dart';
 import '../widgets/coming_soon.dart';
 
 /// Final result screen. "Ask a follow-up question" / "Share" have no
@@ -26,7 +27,9 @@ class SummaryScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Text('Summary', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -55,30 +58,23 @@ class SummaryScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () async {
-                await ref.read(savedAnalysesControllerProvider.notifier).save(analysis);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved')));
-                }
-              },
-              icon: const Icon(Icons.bookmark_border),
-              label: const Text('Save this analysis'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
               onPressed: () => showComingSoon(context),
               icon: const Icon(Icons.share_outlined),
               label: const Text('Share'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () => context.go(RoutePaths.home),
+              onPressed: () {
+                ref.read(claimInputProvider.notifier).set(null);
+                context.go(RoutePaths.home);
+              },
               icon: const Icon(Icons.crop_free),
-              label: const Text('New selection'),
+              label: const Text('New analysis'),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNav(activeTab: AppNavTab.reasoning),
     );
   }
 }
